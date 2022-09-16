@@ -3,9 +3,9 @@
 [Github](https://github.com/LedgerHQ/ledgerjs/),
 [Ledger Devs Slack](https://ledger-dev.slack.com/)
 
-## @ledgerhq/hw-app-eth
+## @blooo/hw-app-klaytn
 
-Ledger Hardware Wallet ETH JavaScript bindings.
+Ledger Hardware Wallet Klaytn JavaScript bindings.
 
 ***
 
@@ -26,7 +26,7 @@ For a smooth and quick integration:
 
 #### Table of Contents
 
-*   [Eth](#eth)
+*   [Klaytn](#klaytn)
     *   [Parameters](#parameters)
     *   [Examples](#examples)
     *   [getAddress](#getaddress)
@@ -80,9 +80,9 @@ For a smooth and quick integration:
 *   [ResolutionConfig](#resolutionconfig)
     *   [Properties](#properties)
 
-### Eth
+### Klaytn
 
-Ethereum API
+Klaytn API
 
 #### Parameters
 
@@ -93,13 +93,13 @@ Ethereum API
 #### Examples
 
 ```javascript
-import Eth from "@ledgerhq/hw-app-eth";
-const eth = new Eth(transport)
+import Klaytn from "@blooo/hw-app-klaytn";
+const klaytn = new Klaytn(transport)
 ```
 
 #### getAddress
 
-get Ethereum address for a given BIP 32 path.
+get Klaytn address for a given BIP 32 path.
 
 ##### Parameters
 
@@ -110,7 +110,7 @@ get Ethereum address for a given BIP 32 path.
 ##### Examples
 
 ```javascript
-eth.getAddress("44'/60'/0'/0/0").then(o => o.address)
+eth.getAddress("44'/8217'/0'/0/0").then(o => o.address)
 ```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{publicKey: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), address: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), chainCode: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?}>** an object with a publicKey, address and (optionally) chainCode
@@ -122,7 +122,7 @@ You can sign a transaction and retrieve v, r, s given the raw transaction and th
 ##### Parameters
 
 *   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** : the BIP32 path to sign the transaction on
-*   `rawTxHex` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** : the raw ethereum transaction in hexadecimal to sign
+*   `rawTxHex` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** : the raw klaytn transaction in hexadecimal to sign
 *   `resolution` **(LedgerEthTransactionResolution | null)?** : resolution is an object with all "resolved" metadata necessary to allow the device to clear sign information. This includes: ERC20 token information, plugins, contracts, NFT signatures,... You must explicitly provide something to avoid having a warning. By default, you can use Ledger's service or your own resolution service. See services/types.js for the contract. Setting the value to "null" will fallback everything to blind signing but will still allow the device to sign the transaction.
 
 ##### Examples
@@ -131,7 +131,7 @@ You can sign a transaction and retrieve v, r, s given the raw transaction and th
 import { ledgerService } from "@ledgerhq/hw-app-eth"
 const tx = "e8018504e3b292008252089428ee52a8f3d6e5d15f8b131996950d7f296c7952872bd72a2487400080"; // raw tx to sign
 const resolution = await ledgerService.resolveTransaction(tx);
-const result = eth.signTransaction("44'/60'/0'/0/0", tx, resolution);
+const result = klaytn.signTransaction("44'/8217'/0'/0/0", tx, resolution);
 console.log(result);
 ```
 
@@ -153,7 +153,7 @@ You can sign a message according to eth_sign RPC call and retrieve v, r, s given
 ##### Examples
 
 ```javascript
-eth.signPersonalMessage("44'/60'/0'/0/0", Buffer.from("test").toString("hex")).then(result => {
+klaytn.signPersonalMessage("44'/8217'/0'/0/0", Buffer.from("test").toString("hex")).then(result => {
 var v = result['v'] - 27;
 v = v.toString(16);
 if (v.length < 2) {
@@ -178,7 +178,7 @@ Sign a prepared message following web3.eth.signTypedData specification. The host
 ##### Examples
 
 ```javascript
-eth.signEIP712HashedMessage("44'/60'/0'/0/0", Buffer.from("0101010101010101010101010101010101010101010101010101010101010101").toString("hex"), Buffer.from("0202020202020202020202020202020202020202020202020202020202020202").toString("hex")).then(result => {
+klaytn.signEIP712HashedMessage("44'/8217'/0'/0/0", Buffer.from("0101010101010101010101010101010101010101010101010101010101010101").toString("hex"), Buffer.from("0202020202020202020202020202020202020202020202020202020202020202").toString("hex")).then(result => {
 var v = result['v'] - 27;
 v = v.toString(16);
 if (v.length < 2) {
@@ -204,7 +204,7 @@ https://github.com/LedgerHQ/app-ethereum/blob/develop/doc/ethapp.asc#sign-eth-ei
 ##### Examples
 
 ```javascript
-eth.signEIP721Message("44'/60'/0'/0/0", {
+klaytn.signEIP721Message("44'/8217'/0'/0/0", {
 domain: {
 chainId: 69,
 name: "Da Domain",
@@ -405,7 +405,7 @@ get a public encryption key on Curve25519 according to EIP 1024
 ##### Examples
 
 ```javascript
-eth.getEIP1024PublicEncryptionKey("44'/60'/0'/0/0").then(o => o.publicKey)
+klaytn.getEIP1024PublicEncryptionKey("44'/8217'/0'/0/0").then(o => o.publicKey)
 ```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{publicKey: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** an object with a publicKey
@@ -423,7 +423,7 @@ get a shared secret on Curve25519 according to EIP 1024
 ##### Examples
 
 ```javascript
-eth.getEIP1024SharedSecret("44'/60'/0'/0/0", "87020e80af6e07a6e4697f091eacadb9e7e6629cb7e5a8a371689a3ed53b3d64").then(o => o.sharedSecret)
+klaytn.getEIP1024SharedSecret("44'/8217'/0'/0/0", "87020e80af6e07a6e4697f091eacadb9e7e6629cb7e5a8a371689a3ed53b3d64").then(o => o.sharedSecret)
 ```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{sharedSecret: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** an object with a shared secret
