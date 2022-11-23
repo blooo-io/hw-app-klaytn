@@ -3,15 +3,15 @@
 [Github](https://github.com/LedgerHQ/ledgerjs/),
 [Ledger Devs Slack](https://ledger-dev.slack.com/)
 
-## @blooo/hw-app-klaytn
+## @ledgerhq/hw-app-helium
 
-Ledger Hardware Wallet Klaytn JavaScript bindings.
+Ledger Hardware Wallet Helium JavaScript bindings.
 
 ***
 
 ## Are you adding Ledger support to your software wallet?
 
-You may be using this package to communicate with the Ethereum Nano App.
+You may be using this package to communicate with the Helium Nano App.
 
 For a smooth and quick integration:
 
@@ -26,447 +26,190 @@ For a smooth and quick integration:
 
 #### Table of Contents
 
-*   [Klaytn](#klaytn)
+*   [Helium](#helium)
     *   [Parameters](#parameters)
     *   [Examples](#examples)
+    *   [getVersion](#getversion)
+        *   [Examples](#examples-1)
     *   [getAddress](#getaddress)
         *   [Parameters](#parameters-1)
-        *   [Examples](#examples-1)
-    *   [signTransaction](#signtransaction)
-        *   [Parameters](#parameters-2)
         *   [Examples](#examples-2)
-    *   [getAppConfiguration](#getappconfiguration)
-    *   [signPersonalMessage](#signpersonalmessage)
-        *   [Parameters](#parameters-3)
+    *   [signPaymentV2](#signpaymentv2)
+        *   [Parameters](#parameters-2)
         *   [Examples](#examples-3)
-    *   [signEIP712HashedMessage](#signeip712hashedmessage)
-        *   [Parameters](#parameters-4)
+    *   [signTokenBurnV1](#signtokenburnv1)
+        *   [Parameters](#parameters-3)
         *   [Examples](#examples-4)
-    *   [signEIP712Message](#signeip712message)
-        *   [Parameters](#parameters-5)
+    *   [signStakeValidatorV1](#signstakevalidatorv1)
+        *   [Parameters](#parameters-4)
         *   [Examples](#examples-5)
-    *   [starkGetPublicKey](#starkgetpublickey)
-        *   [Parameters](#parameters-6)
-    *   [starkSignOrder](#starksignorder)
-        *   [Parameters](#parameters-7)
-    *   [starkSignOrder_v2](#starksignorder_v2)
-        *   [Parameters](#parameters-8)
-    *   [starkSignTransfer](#starksigntransfer)
-        *   [Parameters](#parameters-9)
-    *   [starkSignTransfer_v2](#starksigntransfer_v2)
-        *   [Parameters](#parameters-10)
-    *   [starkProvideQuantum](#starkprovidequantum)
-        *   [Parameters](#parameters-11)
-    *   [starkProvideQuantum_v2](#starkprovidequantum_v2)
-        *   [Parameters](#parameters-12)
-    *   [starkUnsafeSign](#starkunsafesign)
-        *   [Parameters](#parameters-13)
-    *   [eth2GetPublicKey](#eth2getpublickey)
-        *   [Parameters](#parameters-14)
+    *   [signUnstakeValidatorV1](#signunstakevalidatorv1)
+        *   [Parameters](#parameters-5)
         *   [Examples](#examples-6)
-    *   [eth2SetWithdrawalIndex](#eth2setwithdrawalindex)
-        *   [Parameters](#parameters-15)
-    *   [getEIP1024PublicEncryptionKey](#geteip1024publicencryptionkey)
-        *   [Parameters](#parameters-16)
+    *   [signTransferValidatorStakeV1](#signtransfervalidatorstakev1)
+        *   [Parameters](#parameters-6)
         *   [Examples](#examples-7)
-    *   [getEIP1024SharedSecret](#geteip1024sharedsecret)
-        *   [Parameters](#parameters-17)
+    *   [signSecurityExchangeV1](#signsecurityexchangev1)
+        *   [Parameters](#parameters-7)
         *   [Examples](#examples-8)
-*   [loadInfosForContractMethod](#loadinfosforcontractmethod)
-    *   [Parameters](#parameters-18)
-*   [byContractAddressAndChainId](#bycontractaddressandchainid)
-    *   [Parameters](#parameters-19)
-*   [list](#list)
-*   [ResolutionConfig](#resolutionconfig)
-    *   [Properties](#properties)
 
-### Klaytn
+### Helium
 
-Klaytn API
+Helium API
 
 #### Parameters
 
-*   `transport` **Transport** 
-*   `scrambleKey`   (optional, default `"w0w"`)
-*   `loadConfig` **LoadConfig**  (optional, default `{}`)
+*   `transport` **Transport** a transport for sending commands to a device
+*   `scrambleKey`  a scramble key (optional, default `"helium_default_scramble_key"`)
 
 #### Examples
 
 ```javascript
-import Klaytn from "@blooo/hw-app-klaytn";
-const klaytn = new Klaytn(transport)
+import Helium from "@ledgerhq/hw-app-helium";
+const helium = new Helium(transport);
 ```
+
+#### getVersion
+
+Get application version.
+
+##### Examples
+
+```javascript
+helium.getVersion().then(r => r.version)
+```
+
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{version: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** version object
 
 #### getAddress
 
-get Klaytn address for a given BIP 32 path.
+Get Helium address (public key) for a BIP32 path.
 
 ##### Parameters
 
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `boolDisplay` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
-*   `boolChaincode` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
+*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a BIP32 path
+*   `display` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** flag to show display
+*   `accountIndex`  index of account address (optional, default `0`)
 
 ##### Examples
 
 ```javascript
-eth.getAddress("44'/8217'/0'/0/0").then(o => o.address)
+helium.getAddress("44'/904'/0'/0'/0'").then(r => r.address)
 ```
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{publicKey: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), address: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), chainCode: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?}>** an object with a publicKey, address and (optionally) chainCode
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{index: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), address: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), publicKey: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** an object with the address field
 
-#### signTransaction
+#### signPaymentV2
 
-You can sign a transaction and retrieve v, r, s given the raw transaction and the BIP 32 path of the account to sign.
+Sign a Helium `PaymentV2` transaction.
 
 ##### Parameters
 
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** : the BIP32 path to sign the transaction on
-*   `rawTxHex` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** : the raw klaytn transaction in hexadecimal to sign
-*   `resolution` **(LedgerEthTransactionResolution | null)?** : resolution is an object with all "resolved" metadata necessary to allow the device to clear sign information. This includes: ERC20 token information, plugins, contracts, NFT signatures,... You must explicitly provide something to avoid having a warning. By default, you can use Ledger's service or your own resolution service. See services/types.js for the contract. Setting the value to "null" will fallback everything to blind signing but will still allow the device to sign the transaction.
+*   `txn` **PaymentV2** a PaymentV2 transaction
+*   `accountIndex`  index of account address (optional, default `0`)
 
 ##### Examples
 
 ```javascript
-import { ledgerService } from "@ledgerhq/hw-app-eth"
-const tx = "e8018504e3b292008252089428ee52a8f3d6e5d15f8b131996950d7f296c7952872bd72a2487400080"; // raw tx to sign
-const resolution = await ledgerService.resolveTransaction(tx);
-const result = klaytn.signTransaction("44'/8217'/0'/0/0", tx, resolution);
-console.log(result);
+import { PaymentV2 } from '@helium/transactions'
+const txn = new PaymentV2({ ... })
+helium.signTransaction(txn).then(r => r.signature)
 ```
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), v: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** 
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{signature: [Buffer](https://nodejs.org/api/buffer.html), txn: PaymentV2}>** an object with the signed transaction and signature
 
-#### getAppConfiguration
+#### signTokenBurnV1
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{arbitraryDataEnabled: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), erc20ProvisioningNecessary: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), starkEnabled: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), starkv2Supported: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), version: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** 
-
-#### signPersonalMessage
-
-You can sign a message according to eth_sign RPC call and retrieve v, r, s given the message and the BIP 32 path of the account to sign.
+Sign a Helium `TokenBurnV1` transaction.
 
 ##### Parameters
 
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
-*   `messageHex` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
+*   `txn` **TokenBurnV1** a TokenBurnV1 transaction
+*   `accountIndex`  index of account address (optional, default `0`)
 
 ##### Examples
 
 ```javascript
-klaytn.signPersonalMessage("44'/8217'/0'/0/0", Buffer.from("test").toString("hex")).then(result => {
-var v = result['v'] - 27;
-v = v.toString(16);
-if (v.length < 2) {
-v = "0" + v;
-}
-console.log("Signature 0x" + result['r'] + result['s'] + v);
-})
+import { TokenBurnV1 } from '@helium/transactions'
+const txn = new TokenBurnV1({ ... })
+helium.signTransaction(txn).then(r => r.signature)
 ```
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{v: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** 
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{signature: [Buffer](https://nodejs.org/api/buffer.html), txn: TokenBurnV1}>** an object with the signed transaction and signature
 
-#### signEIP712HashedMessage
+#### signStakeValidatorV1
 
-Sign a prepared message following web3.eth.signTypedData specification. The host computes the domain separator and hashStruct(message)
+Sign a Helium `StakeValidatorV1` transaction.
 
 ##### Parameters
 
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
-*   `domainSeparatorHex` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
-*   `hashStructMessageHex` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
+*   `txn` **StakeValidatorV1** a StakeValidatorV1 transaction
+*   `accountIndex`  index of account address (optional, default `0`)
 
 ##### Examples
 
 ```javascript
-klaytn.signEIP712HashedMessage("44'/8217'/0'/0/0", Buffer.from("0101010101010101010101010101010101010101010101010101010101010101").toString("hex"), Buffer.from("0202020202020202020202020202020202020202020202020202020202020202").toString("hex")).then(result => {
-var v = result['v'] - 27;
-v = v.toString(16);
-if (v.length < 2) {
-v = "0" + v;
-}
-console.log("Signature 0x" + result['r'] + result['s'] + v);
-})
+import { StakeValidatorV1 } from '@helium/transactions'
+const txn = new StakeValidatorV1({ ... })
+helium.signTransaction(txn).then(r => r.signature)
 ```
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{v: [number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number), s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** 
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{signature: [Buffer](https://nodejs.org/api/buffer.html), txn: StakeValidatorV1}>** an object with the signed transaction and signature
 
-#### signEIP712Message
+#### signUnstakeValidatorV1
 
-Sign an EIP-721 formatted message following the specification here:
-https://github.com/LedgerHQ/app-ethereum/blob/develop/doc/ethapp.asc#sign-eth-eip-712
+Sign a Helium `UnstakeValidatorV1` transaction.
 
 ##### Parameters
 
-*   `path` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** derivationPath
-*   `jsonMessage` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** message to sign
-*   `fullImplem` **[Boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)** use the legacy implementation (optional, default `false`)
+*   `txn` **UnstakeValidatorV1** a UnstakeValidatorV1 transaction
+*   `accountIndex`  index of account address (optional, default `0`)
 
 ##### Examples
 
 ```javascript
-klaytn.signEIP721Message("44'/8217'/0'/0/0", {
-domain: {
-chainId: 69,
-name: "Da Domain",
-verifyingContract: "0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC",
-version: "1"
-},
-types: {
-"EIP712Domain": [
-{ name: "name", type: "string" },
-{ name: "version", type: "string" },
-{ name: "chainId", type: "uint256" },
-{ name: "verifyingContract", type: "address" }
-],
-"Test": [
-{ name: "contents", type: "string" }
-]
-},
-primaryType: "Test",
-message: {contents: "Hello, Bob!"},
-})
+import { UnstakeValidatorV1 } from '@helium/transactions'
+const txn = new UnstakeValidatorV1({ ... })
+helium.signTransaction(txn).then(r => r.signature)
 ```
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{signature: [Buffer](https://nodejs.org/api/buffer.html), txn: UnstakeValidatorV1}>** an object with the signed transaction and signature
 
-#### starkGetPublicKey
+#### signTransferValidatorStakeV1
 
-get Stark public key for a given BIP 32 path.
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `boolDisplay` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[Buffer](https://nodejs.org/api/buffer.html)>** the Stark public key
-
-#### starkSignOrder
-
-sign a Stark order
+Sign a Helium `TransferValidatorStakeV1` transaction.
 
 ##### Parameters
 
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `sourceTokenAddress` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `sourceQuantization` **BigNumber** quantization used for the source token
-*   `destinationTokenAddress` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `destinationQuantization` **BigNumber** quantization used for the destination token
-*   `sourceVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the source vault
-*   `destinationVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the destination vault
-*   `amountSell` **BigNumber** amount to sell
-*   `amountBuy` **BigNumber** amount to buy
-*   `nonce` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction nonce
-*   `timestamp` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction validity timestamp
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<([Buffer](https://nodejs.org/api/buffer.html) | {r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)})>** the signature
-
-#### starkSignOrder_v2
-
-sign a Stark order using the Starkex V2 protocol
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `sourceTokenAddress` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `sourceQuantizationType` **StarkQuantizationType** quantization type used for the source token
-*   `sourceQuantization` **(BigNumber | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `sourceMintableBlobOrTokenId` **(BigNumber | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `destinationTokenAddress` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `destinationQuantizationType` **StarkQuantizationType** quantization type used for the destination token
-*   `destinationQuantization` **(BigNumber | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `destinationMintableBlobOrTokenId` **(BigNumber | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `sourceVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the source vault
-*   `destinationVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the destination vault
-*   `amountSell` **BigNumber** amount to sell
-*   `amountBuy` **BigNumber** amount to buy
-*   `nonce` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction nonce
-*   `timestamp` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction validity timestamp
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<([Buffer](https://nodejs.org/api/buffer.html) | {r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)})>** the signature
-
-#### starkSignTransfer
-
-sign a Stark transfer
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `transferTokenAddress` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `transferQuantization` **BigNumber** quantization used for the token to be transferred
-*   `targetPublicKey` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** target Stark public key
-*   `sourceVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the source vault
-*   `destinationVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the destination vault
-*   `amountTransfer` **BigNumber** amount to transfer
-*   `nonce` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction nonce
-*   `timestamp` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction validity timestamp
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<([Buffer](https://nodejs.org/api/buffer.html) | {r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)})>** the signature
-
-#### starkSignTransfer_v2
-
-sign a Stark transfer or conditional transfer using the Starkex V2 protocol
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `transferTokenAddress` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `transferQuantizationType` **StarkQuantizationType** quantization type used for the token to be transferred
-*   `transferQuantization` **(BigNumber | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `transferMintableBlobOrTokenId` **(BigNumber | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-*   `targetPublicKey` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** target Stark public key
-*   `sourceVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the source vault
-*   `destinationVault` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** ID of the destination vault
-*   `amountTransfer` **BigNumber** amount to transfer
-*   `nonce` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction nonce
-*   `timestamp` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** transaction validity timestamp
-*   `conditionalTransferAddress` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)?** 
-*   `conditionalTransferFact` **BigNumber?** 
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<([Buffer](https://nodejs.org/api/buffer.html) | {r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)})>** the signature
-
-#### starkProvideQuantum
-
-provide quantization information before singing a deposit or withdrawal Stark powered contract call
-
-It shall be run following a provideERC20TokenInformation call for the given contract
-
-##### Parameters
-
-*   `operationContract` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** contract address of the token to be transferred (not present for ETH)
-*   `operationQuantization` **BigNumber** quantization used for the token to be transferred
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)>** 
-
-#### starkProvideQuantum_v2
-
-provide quantization information before singing a deposit or withdrawal Stark powered contract call using the Starkex V2 protocol
-
-It shall be run following a provideERC20TokenInformation call for the given contract
-
-##### Parameters
-
-*   `operationContract` **([string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** contract address of the token to be transferred (not present for ETH)
-*   `operationQuantizationType` **StarkQuantizationType** quantization type of the token to be transferred
-*   `operationQuantization` **BigNumber?** 
-*   `operationMintableBlobOrTokenId` **BigNumber?** 
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)>** 
-
-#### starkUnsafeSign
-
-sign the given hash over the Stark curve
-It is intended for speed of execution in case an unknown Stark model is pushed and should be avoided as much as possible.
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `hash` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** hexadecimal hash to sign
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<([Buffer](https://nodejs.org/api/buffer.html) | {r: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), s: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)})>** the signature
-
-#### eth2GetPublicKey
-
-get an Ethereum 2 BLS-12 381 public key for a given BIP 32 path.
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `boolDisplay` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
+*   `txn` **TransferValidatorStakeV1** a TransferValidatorStakeV1 transaction
+*   `ownerType` **(`"old"` | `"new"`)** whether to sign as the old or new owner in the transfer
+*   `accountIndex`  index of account address (optional, default `0`)
 
 ##### Examples
 
 ```javascript
-eth.eth2GetPublicKey("12381/3600/0/0").then(o => o.publicKey)
+import { TransferValidatorStakeV1 } from '@helium/transactions'
+const txn = new TransferValidatorStakeV1({ ... }, 'old')
+helium.signTransaction(txn).then(r => r.signature)
 ```
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{publicKey: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** an object with a publicKey
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{signature: [Buffer](https://nodejs.org/api/buffer.html), txn: TransferValidatorStakeV1}>** an object with the signed transaction and signature
 
-#### eth2SetWithdrawalIndex
+#### signSecurityExchangeV1
 
-Set the index of a Withdrawal key used as withdrawal credentials in an ETH 2 deposit contract call signature
-
-It shall be run before the ETH 2 deposit transaction is signed. If not called, the index is set to 0
+Sign a Helium `SecurityExchangeV1` transaction.
 
 ##### Parameters
 
-*   `withdrawalIndex` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** index path in the EIP 2334 path m/12381/3600/withdrawalIndex/0
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)>** True if the method was executed successfully
-
-#### getEIP1024PublicEncryptionKey
-
-get a public encryption key on Curve25519 according to EIP 1024
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `boolDisplay` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
+*   `txn` **SecurityExchangeV1** a SecurityExchangeV1 transaction
+*   `accountIndex`  index of account address (optional, default `0`)
 
 ##### Examples
 
 ```javascript
-klaytn.getEIP1024PublicEncryptionKey("44'/8217'/0'/0/0").then(o => o.publicKey)
+import { SecurityExchangeV1 } from '@helium/transactions'
+const txn = new SecurityExchangeV1({ ... })
+helium.signTransaction(txn).then(r => r.signature)
 ```
 
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{publicKey: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** an object with a publicKey
-
-#### getEIP1024SharedSecret
-
-get a shared secret on Curve25519 according to EIP 1024
-
-##### Parameters
-
-*   `path` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** a path in BIP 32 format
-*   `remotePublicKeyHex` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** remote Curve25519 public key
-*   `boolDisplay` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
-
-##### Examples
-
-```javascript
-klaytn.getEIP1024SharedSecret("44'/8217'/0'/0/0", "87020e80af6e07a6e4697f091eacadb9e7e6629cb7e5a8a371689a3ed53b3d64").then(o => o.sharedSecret)
-```
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{sharedSecret: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)}>** an object with a shared secret
-
-### loadInfosForContractMethod
-
-Retrieve the metadatas a given contract address and a method selector
-
-#### Parameters
-
-*   `contractAddress` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
-*   `selector` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
-*   `chainId` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** 
-*   `userLoadConfig` **LoadConfig** 
-
-Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<(ContractMethod | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))>** 
-
-### byContractAddressAndChainId
-
-Retrieve the token information by a given contract address if any
-
-#### Parameters
-
-*   `contract` **[string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** 
-*   `chainId` **[number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** 
-
-Returns **(TokenInfo | null | [undefined](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined))** 
-
-### list
-
-list all the ERC20 tokens informations
-
-Returns **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)\<TokenInfo>** 
-
-### ResolutionConfig
-
-Allows to configure precisely what the service need to resolve.
-for instance you can set nft:true if you need clear signing on NFTs. If you set it and it is not a NFT transaction, it should still work but will do a useless service resolution.
-
-Type: {nft: [boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?, externalPlugins: [boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?, erc20: [boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?}
-
-#### Properties
-
-*   `nft` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
-*   `externalPlugins` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
-*   `erc20` **[boolean](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean)?** 
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{signature: [Buffer](https://nodejs.org/api/buffer.html), txn: SecurityExchangeV1}>** an object with the signed transaction and signature
