@@ -11,14 +11,15 @@ listen((log) => console.log(log));
 test("getVersion", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
-            => e001000000
-            <= 0102039000
+            => e006000000
+            <= 0e010a029000
         `)
   );
   const klaytn = new Klaytn(transport);
+  console.log("getVersion");
   const result = await klaytn.getVersion();
   expect(result).toEqual({
-    version: "1.2.3",
+    version: "1.10.2",
   });
 });
 
@@ -33,13 +34,14 @@ test("getAddress without display", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
         => e002000015058000002c80002019800000008000000080000000
-        <= 4104d2ca9905ce8e697c7623650b22b7783a21c4d6a08f7438744498a86ea8c3ea5702f0f3af50d6b02cef415aaaff49ab2f4d9606bbb44ee75f8d7c623a01cfc51828653430456638363844383042394543386443353637314546633430323131323561656631343430339000
+        <= 41042b3a9c2bcd329eb3bcbc40e3bba8b87234c1b34fa81b252361db15f290f70e39374f0e52870e588b25b992d7304d5e8c1f5ccf01b7dc67b8d3503c120ff1227128363639346434363762343139623336666237313945383531634436356435343230354466373535359000
     `)
   );
   const klaytn = new Klaytn(transport);
+  console.log("getAddress");
   const { address } = await klaytn.getAddress(DERIVATION, false);
   expect(address).toEqual(
-    "0xe40Ef868D80B9EC8dC5671EFc4021125aef14403"
+    "0x6694d467b419b36fb719E851cD65d54205Df7555"
   );
 });
 
@@ -47,44 +49,53 @@ test("getAddress with display", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
         => e002010015058000002c80002019800000008000000080000000
-        <= 4104d2ca9905ce8e697c7623650b22b7783a21c4d6a08f7438744498a86ea8c3ea5702f0f3af50d6b02cef415aaaff49ab2f4d9606bbb44ee75f8d7c623a01cfc51828653430456638363844383042394543386443353637314546633430323131323561656631343430339000
+        <= 41042b3a9c2bcd329eb3bcbc40e3bba8b87234c1b34fa81b252361db15f290f70e39374f0e52870e588b25b992d7304d5e8c1f5ccf01b7dc67b8d3503c120ff1227128363639346434363762343139623336666237313945383531634436356435343230354466373535359000
     `)
   );
   const klaytn = new Klaytn(transport);
+  console.log("getAddress");
   const { address } = await klaytn.getAddress(DERIVATION, true);
+  console.log("ADDRESS = ", address);
   expect(address).toEqual(
-    "0xe40Ef868D80B9EC8dC5671EFc4021125aef14403"
+    "0x6694d467b419b36fb719E851cD65d54205Df7555"
   );
 });
 
 test("signLegacyTransaction with display", async () => {
+  // => e004000023e2198203e8830493e09418e9ee49ee911f2c49b7b6efa5d2607e4f46c0b51580018080
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
-        => e0040000351900000000000000e803000000000000e093040000000000010000000000000018e9ee49ee911f2c49b7b6efa5d2607e4f46c0b5e9
-        <= 0a21011a7cb93f11c575248e8c381aefce9af49154960321856511343eb98c135f25e812280a2101351a71c22fefec2231936ad2826b217ece39d9f77fc6c49639926299c38692951080c2d72f18b8910220192a407a59cc2dc8e340d65a38ee7baf4dd03b5be7d02cf2b4a0ff7c21ce07a01c73543b93a5a2d36811bd11d09205696bacea8250a7ff404cabdecb3bbbd0f7a152069000
+        => e00400003d058000002c80002019800000008000000080000000e719850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01808220198080
+        <= 56efc3f267021a912109919202b8e74e1ddf474486f43d0880bbfa1c1bd54b44f62881888f136d40a9b8e02a792bbf175284fe736ad470fb551ba57751f81717a39000
     `)
   );
   const klaytn = new Klaytn(transport);
-
-  const txnToSign = caver.transaction.legacyTransaction.create({
-    from: "0xDd6dcc0c221EcC96b4d09B683e2beB49d75D16c8",
-    to: "0x18E9Ee49Ee911F2C49B7b6eFA5d2607e4F46C0B5",
+  const txnToSign: LegacyTransaction = caver.transaction.legacyTransaction.create({
+    from: "0x6694d467b419b36fb719E851cD65d54205Df7555",
+    to: "0x0EE56B604c869E3792c99E35C1C424f88F87dC8a",
     value: 1,
-    gasPrice: 1000,
+    gasPrice: 50000000000,
     gas: 300000,
     nonce: 25,
+    chainId: 8217,
   });
 
+  console.log("signLegacyTransaction");
   console.log(txnToSign);
+  console.log("RLP Encoding:", txnToSign.getRLPEncoding())
+  console.log("RLP For Sig: ", txnToSign.getRLPEncodingForSignature())
 
-  const { signature, txn } = await klaytn.signLegacyTransaction(txnToSign);
+  const { signature, signedTxn } = await klaytn.signLegacyTransaction(txnToSign);
 
-  const expectedSig =
-    "7a59cc2dc8e340d65a38ee7baf4dd03b5be7d02cf2b4a0ff7c21ce07a01c73543b93a5a2d36811bd11d09205696bacea8250a7ff404cabdecb3bbbd0f7a15206";
-  expect(txn.value).toBe('0x1');
-  expect(txn.nonce).toBe("0x19");
-  expect(txn.gas).toBe("0x493e0");
-  expect(txn.gasPrice).toBe("0x3e8");
+  const expectedSig = "56efc3f267021a912109919202b8e74e1ddf474486f43d0880bbfa1c1bd54b44f62881888f136d40a9b8e02a792bbf175284fe736ad470fb551ba57751f81717a3";
+  let signedRawTx = signedTxn.getRawTransaction();
+  const recoveredTx = caver.klay.accounts.recoverTransaction(signedRawTx)
+
+  expect(recoveredTx).toEqual("0x6694d467b419b36fb719E851cD65d54205Df7555")
+  expect(signedTxn.value).toBe('0x1');
+  expect(signedTxn.nonce).toBe("0x19");
+  expect(signedTxn.gas).toBe("0x493e0");
+  expect(signedTxn.gasPrice).toBe("0xba43b7400");
   expect(signature.toString("hex")).toEqual(expectedSig);
   expect(Buffer.from(signature as Uint8Array).toString("hex")).toBe(
     expectedSig
