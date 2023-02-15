@@ -28,7 +28,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@ethersproject/abi": "^5.5.0",
-    "@ethersproject/rlp": "^5.5.0",
+    "@ethersproject/rlp": "^5.7.0",
     "@helium/address": "^4.6.2",
     "@ledgerhq/cryptoassets": "^6.34.0",
     "@ledgerhq/errors": "^6.10.2",
@@ -42,7 +42,10 @@
   },
   "scripts": {
     "clean": "rimraf lib lib-es",
-    "build": "tsc && tsc -m ES6 --outDir lib-es",
+    "build": "tsc && tsc -m ES6 --outDir lib",
+    "build:kaikas": "tsc && tsc -m ES6 --outDir '../kaikas-pixelplex/ui/lib'",
+    "build:kaikas-tuto": "tsc && tsc -m ES6 --outDir '../../kaikas-tutorial/src/lib'",
+    "build:pure-js": "tsc && tsc -m ES6 --outDir '../../stellar-prep/lib'",
     "prewatch": "pnpm build",
     "watch": "tsc --watch",
     "doc": "documentation readme src/** --section=API --pe ts --re ts --re d.ts",

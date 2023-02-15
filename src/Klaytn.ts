@@ -1,20 +1,24 @@
 import Transport from "@ledgerhq/hw-transport";
 import { StatusCodes } from "@ledgerhq/errors";
-import Address from "@helium/address";
 import { pathToBuffer, serializeLegacyTransaction } from "./serialization";
-import Caver, { LegacyTransaction, SignatureData } from "caver-js";
+import Caver, { LegacyTransaction } from "caver-js";
+import SignatureData from 'caver-js/packages/caver-wallet/src/keyring/signatureData'
 
 const P1_NON_CONFIRM = 0x00;
 const P1_CONFIRM = 0x01;
+
+const P2_SIGN = 0x00;
 
 const LEDGER_CLA = 0xe0;
 const CLA_OFFSET = 0x00;
 
 const INS = {
-  GET_VERSION: 0x01,
+  GET_VERSION: 0x06,
   GET_ADDR: 0x02,
   SIGN_LEGACY_TRANSACTION: 0x04,
 };
+
+const klay_path = "44'/8217'/0'/0'/0'";
 
 /**
  * Helium API
@@ -50,7 +54,7 @@ export default class Klaytn {
    * helium.getVersion().then(r => r.version)
    */
   async getVersion(): Promise<{ version: string }> {
-    const [major, minor, patch] = await this.sendToDevice(
+    const [ _, major, minor, patch] = await this.sendToDevice(
       INS.GET_VERSION,
       P1_NON_CONFIRM,
       0,
@@ -128,31 +132,73 @@ export default class Klaytn {
   async signLegacyTransaction(
     txn: LegacyTransaction,
     accountIndex = 0
-  ): Promise<{ signature: Buffer; txn: LegacyTransaction }> {
-    const payload = serializeLegacyTransaction(txn);
+  ): Promise<{ signature: Buffer; signedTxn: LegacyTransaction }> {
 
-    const response = await this.sendToDevice(
+    const {payloads, txType, chainId, chainIdTruncated} = serializeLegacyTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+    let response = await this.sendToDevice(
       INS.SIGN_LEGACY_TRANSACTION,
-      accountIndex,
-      CLA_OFFSET,
-      payload
+      P1_NON_CONFIRM,
+      P2_SIGN,
+      payloads[0]
     );
 
+    for(let i=1; i<payloads.length; i++){
+      response = await this.sendToDevice(
+        INS.SIGN_LEGACY_TRANSACTION,
+        P1_NON_CONFIRM,
+        P2_SIGN,
+        payloads[i],
+      );
+    }
+    
     if (response.length === 1) throw "User has declined.";
 
-    console.log("RESPONSE: ", response);
-    console.log("LENGTH: ", response.length);
+    console.log("LENGTH: ", response.length, "RESPONSE: ", response);
     // const responseDecoded = Caver.abi.
     const responseHex = Caver.utils.bufferToHex(response);
-    console.log("GUI: ", responseHex);
-    console.log("GUI LENGTH: ", responseHex.length);
+    console.log("RESPONSE_HEX ", responseHex);
 
     const signature = response;
-    // txn.signatures = new SignatureData(signature);
+    const signatureStr: string = "0x" + response.toString("hex");
+    console.log("signature string = ", signatureStr)
+
+
+    const response_byte: number = response[0];
+    let v = "";
+
+    if (chainId.times(2).plus(35).plus(1).gt(255)) {
+      const oneByteChainId = (chainIdTruncated * 2 + 35) % 256;
+
+      const ecc_parity = Math.abs(response_byte - oneByteChainId);
+
+      // Legacy type transaction with a big chain ID
+      v = chainId.times(2).plus(35).plus(ecc_parity).toString(16);
+    } else {
+      v = response_byte.toString(16);
+    }
+
+    // Make sure v has is prefixed with a 0 if its length is odd ("1" -> "01").
+    if (v.length % 2 == 1) {
+      v = "0" + v;
+    }
+
+    const r = response.slice(1, 1 + 32).toString("hex");
+    const s = response.slice(1 + 32, 1 + 32 + 32).toString("hex");
+    let signatureData = new SignatureData([v, r, s])
+    console.log("signatureData =", signatureData)
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+    console.log("signedRawTx =", signedRawTx);
+
+    //return { v, r, s };
+    console.log("v,r,s =", v, r, s)
+    let caver = new Caver();
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
 
     return {
       signature,
-      txn,
+      signedTxn: txn,
     };
   }
 
@@ -163,7 +209,12 @@ export default class Klaytn {
     payload: Buffer
   ) {
     const acceptStatusList = [StatusCodes.OK];
-
+    const buff = Buffer.concat([
+      Buffer.from([LEDGER_CLA, instruction, p1, p2]),
+      Buffer.from([payload.length]),
+      payload,
+    ]);
+    console.log("buff =", buff);
     const reply = await this.transport.send(
       LEDGER_CLA,
       instruction,
