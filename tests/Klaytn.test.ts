@@ -81,8 +81,6 @@ test("signLegacyTransaction with display", async () => {
   });
 
   console.log("signLegacyTransaction");
-  console.log(txnToSign);
-  console.log("RLP Encoding:", txnToSign.getRLPEncoding())
   console.log("RLP For Sig: ", txnToSign.getRLPEncodingForSignature())
 
   const { signature, signedTxn } = await klaytn.signLegacyTransaction(txnToSign);

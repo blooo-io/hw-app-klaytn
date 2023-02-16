@@ -1,7 +1,6 @@
 import BigNumber from "bignumber.js";
 import BIPPath from "bip32-path";
 import Caver, { LegacyTransaction } from "caver-js";
-import { decodeFromRawTransaction } from 'caver-js/packages/caver-klay/caver-klay-accounts/src/makeRawTransaction'
 import { encode, decode } from "@ethersproject/rlp";
 
 const caver = new Caver();
@@ -18,7 +17,7 @@ const serializePath = (path: number[]): Buffer => {
 function decodeTxInfo(rawTx: Buffer) {
   const VALID_TYPES = [1, 2];
   const txType = VALID_TYPES.includes(rawTx[0]) ? rawTx[0] : null;
-  const rlpData = txType === null ? rawTx : rawTx.slice(1);
+  const rlpData = txType === null ? rawTx : rawTx.subarray(1);
   const rlpTx = decode(rlpData).map((hex) => Buffer.from(hex.slice(2), "hex"));
   let chainIdTruncated = 0;
   const rlpDecoded = decode(rlpData);
@@ -100,7 +99,7 @@ export const splitPath = (path: string): number[] => {
   components.forEach((element) => {
     let number = parseInt(element, 10);
     if (isNaN(number)) {
-      return; // FIXME shouldn't it throws instead?
+      return;
     }
     if (element.length > 1 && element[element.length - 1] === "'") {
       number += 0x80000000;
@@ -125,7 +124,7 @@ const serializeNumber = (amount: number | BigNumber | undefined): Buffer => {
   let hex = new BigNumber(amount ?? 0).toString(16);
   hex = hex.length % 2 ? `0${hex}` : hex;
   const len = Math.floor(hex.length / 2);
-  if (len > 8) throw "Invalid transaction.";
+  if (len > 8) throw new Error("Invalid transaction.");
   const u8 = new Uint8Array(8);
   for (let i = 0; i < len; i += 1)
     u8[len - i - 1] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
@@ -139,10 +138,8 @@ export const serializeLegacyTransaction = (txn: LegacyTransaction, path: string)
   chainIdTruncated: number
 } => {
   const rawTxHex = txn.getRLPEncodingForSignature();
-  console.log("rawTxHex =", rawTxHex)
+  console.log("rawTx =", rawTxHex)
   const rawTx = Buffer.from(rawTxHex.slice(2), "hex")
-  console.log("rawTx =", rawTx)
-  console.log("DECODED TRANSACTION", decodeFromRawTransaction(rawTxHex))
 
   const { vrsOffset, txType, chainId, chainIdTruncated } = decodeTxInfo(
     rawTx
@@ -150,11 +147,9 @@ export const serializeLegacyTransaction = (txn: LegacyTransaction, path: string)
 
   const paths = splitPath(path);
   let offset = 0;
-
   const payloads: Buffer[] = [];
+
   while (offset !== rawTx.length) {
-    console.log("offset =", offset)
-    console.log("rawTx.length =", rawTx.length)
     const first = offset === 0;
     const maxChunkSize = first ? 150 - 1 - paths.length * 4 : 150;
     let chunkSize =
