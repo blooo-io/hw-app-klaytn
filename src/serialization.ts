@@ -1,7 +1,8 @@
 import BigNumber from "bignumber.js";
 import BIPPath from "bip32-path";
-import Caver, { LegacyTransaction } from "caver-js";
+import Caver, { AbstractTransaction, LegacyTransaction, ValueTransfer, ValueTransferMemo } from "caver-js";
 import { encode, decode } from "@ethersproject/rlp";
+import { rlpEncodeForValueTransfer } from "caver-js/packages/caver-klay/caver-klay-accounts/src/transactionType/valueTransfer.js"
 
 const caver = new Caver();
 
@@ -14,46 +15,37 @@ const serializePath = (path: number[]): Buffer => {
   return buf;
 };
 
-function decodeTxInfo(rawTx: Buffer) {
-  const VALID_TYPES = [1, 2];
-  const txType = VALID_TYPES.includes(rawTx[0]) ? rawTx[0] : null;
-  const rlpData = txType === null ? rawTx : rawTx.subarray(1);
+function decodeTxInfo(rawTx: Buffer, txType: string) {
+  const rlpData = rawTx
   const rlpTx = decode(rlpData).map((hex) => Buffer.from(hex.slice(2), "hex"));
+  console.log("decoded tx:", rlpTx)
   let chainIdTruncated = 0;
   const rlpDecoded = decode(rlpData);
+  console.log("rlpDecoded:", rlpDecoded)
 
-  let decodedTx;
-  if (txType === 2) {
-    console.log("EIP1559 txType")
-    // EIP1559
-    decodedTx = {
-      data: rlpDecoded[7],
-      to: rlpDecoded[5],
-      chainId: rlpTx[0],
-    };
-  } else if (txType === 1) {
-    console.log("EIP2930 txType");
-    // EIP2930
-    decodedTx = {
-      data: rlpDecoded[6],
-      to: rlpDecoded[4],
-      chainId: rlpTx[0],
-    };
+  let decodedChainId;
+  if (txType === "TxTypeValueTransfer") {
+    console.log("Value Transfer txType");
+    decodedChainId = rlpTx[1];
+  } else if (txType === "TxTypeValueTransferMemo") {
+    console.log("Value Transfer Memo txType");
+    decodedChainId = rlpTx[1];
+  } else if (txType === "TxTypeSmartContractDeploy") {
+    console.log("Smart Contract Deploy txType");
+    decodedChainId = rlpTx[1];
+  } else if (txType === "TxTypeCancel") {
+    console.log("Cancel txType");
+    decodedChainId = rlpTx[1];
   } else {
     console.log("Legacy txType");
-    // Legacy tx
-    decodedTx = {
-      data: rlpDecoded[5],
-      to: rlpDecoded[3],
-      // Default to 1 for non EIP 155 txs
-      chainId: rlpTx.length > 6 ? rlpTx[6] : Buffer.from("0x01", "hex"),
-    };
+    decodedChainId = rlpTx.length > 6 ? rlpTx[6] : Buffer.from("0x01", "hex");
   }
-
-  const chainIdSrc = decodedTx.chainId;
+  console.log("decodedChainId =", decodedChainId);
+  const chainIdSrc = decodedChainId;
   let chainId = new BigNumber(0);
   if (chainIdSrc) {
     // Using BigNumber because chainID could be any uint256.
+    console.log("new BN = ", new BigNumber(chainIdSrc.toString("hex"), 16))
     chainId = new BigNumber(chainIdSrc.toString("hex"), 16);
     const chainIdTruncatedBuf = Buffer.alloc(4);
     if (chainIdSrc.length > 4) {
@@ -65,7 +57,7 @@ function decodeTxInfo(rawTx: Buffer) {
   }
 
   let vrsOffset = 0;
-  if (txType === null && rlpTx.length > 6) {
+  if (rlpTx.length > 6) {
     const rlpVrs = Buffer.from(encode(rlpTx.slice(-3)).slice(2), "hex");
 
     vrsOffset = rawTx.length - (rlpVrs.length - 1);
@@ -84,12 +76,44 @@ function decodeTxInfo(rawTx: Buffer) {
   }
 
   return {
-    decodedTx,
     txType,
     chainId,
     chainIdTruncated,
     vrsOffset,
   };
+}
+
+export const serializeSignature = (
+  signature: Buffer,
+  chainId: BigNumber,
+  chainIdTruncated: number,
+  txType: string | null
+): { v: string, r: string, s: string } => {
+  const response_byte: number = signature[0];
+  let v = "";
+  if (chainId.times(2).plus(35).plus(1).gt(255)) {
+    const oneByteChainId = (chainIdTruncated * 2 + 35) % 256;
+
+    const ecc_parity = Math.abs(response_byte - oneByteChainId);
+    if (txType != "TxTypeLegacyTransaction") {
+      // v is simply the parity.
+      v = ecc_parity % 2 == 1 ? "00" : "01";
+    } else {
+      // Legacy type transaction with a big chain ID
+      v = chainId.times(2).plus(35).plus(ecc_parity).toString(16);
+    }
+  } else {
+    v = response_byte.toString(16);
+  }
+  // Make sure v has is prefixed with a 0 if its length is odd ("1" -> "01").
+  if (v.length % 2 == 1) {
+    v = "0" + v;
+  }
+
+  const r = signature.subarray(1, 1 + 32).toString("hex");
+  const s = signature.subarray(1 + 32, 1 + 32 + 32).toString("hex");
+
+  return { v, r, s };
 }
 
 
@@ -131,20 +155,11 @@ const serializeNumber = (amount: number | BigNumber | undefined): Buffer => {
   return Buffer.from(u8);
 };
 
-export const serializeLegacyTransaction = (txn: LegacyTransaction, path: string): { 
-  payloads: Buffer[],
-  txType: number | null,
-  chainId: BigNumber,
-  chainIdTruncated: number
-} => {
-  const rawTxHex = txn.getRLPEncodingForSignature();
-  console.log("rawTx =", rawTxHex)
-  const rawTx = Buffer.from(rawTxHex.slice(2), "hex")
-
-  const { vrsOffset, txType, chainId, chainIdTruncated } = decodeTxInfo(
-    rawTx
-  );
-
+const serializeTransactionPayloads = (
+  path: string,
+  rawTx: Buffer,
+  vrsOffset: number
+): Buffer[] => {
   const paths = splitPath(path);
   let offset = 0;
   const payloads: Buffer[] = [];
@@ -178,6 +193,60 @@ export const serializeLegacyTransaction = (txn: LegacyTransaction, path: string)
     payloads.push(buffer);
     offset += chunkSize;
   }
+  return payloads;
+}
 
-  return {payloads, txType, chainId, chainIdTruncated};
+export const serializeLegacyTransaction = (txn: LegacyTransaction | ValueTransfer, path: string): {
+  payloads: Buffer[],
+  txType: string | null,
+  chainId: BigNumber,
+  chainIdTruncated: number
+} => {
+  console.log("txn in lib =", txn);
+  const rawTxHex = txn.getRLPEncodingForSignature();
+  console.log("rawTx getRLP =", rawTxHex)
+  console.log("rawTx getCommonRLP =", txn.getCommonRLPEncodingForSignature())
+  const rawTx = Buffer.from(rawTxHex.slice(2), "hex")
+
+  const { vrsOffset, txType, chainId, chainIdTruncated } = decodeTxInfo(
+    rawTx, txn.type
+  );
+
+  const payloads = serializeTransactionPayloads(path, rawTx, vrsOffset);
+
+  return { payloads, txType, chainId, chainIdTruncated };
+};
+
+
+export const serializeKlaytnTransaction = (txn: AbstractTransaction, path: string): {
+  payloads: Buffer[],
+  txType: string | null,
+  chainId: BigNumber,
+  chainIdTruncated: number
+} => {
+  const commonRlpSig = txn.getCommonRLPEncodingForSignature();
+  console.log("commonRlpSig =", commonRlpSig)
+
+  const rlpSig = txn.getRLPEncodingForSignature();
+  console.log("rlpSig =", rlpSig)
+
+  const getRawTx = txn.getRawTransaction();
+  console.log("getRawTx =", getRawTx)
+
+  const rlp = txn.getRLPEncoding()
+  console.log("rlp =", rlp)
+
+  //   const decoded = caver.transaction.valueTransfer.decode(commonRlpSig)
+  //   console.log("decoded = ", decoded)
+
+  // const rlpEncoded = rlpEncodeForValueTransfer(txn)
+  const rawTx = Buffer.from(rlpSig.slice(2), "hex")
+
+  const { vrsOffset, txType, chainId, chainIdTruncated } = decodeTxInfo(
+    rawTx, txn.type
+  );
+  const getRawTxBuffer = Buffer.from(getRawTx.slice(2), "hex")
+  const payloads = serializeTransactionPayloads(path, getRawTxBuffer, vrsOffset);
+
+  return { payloads, txType, chainId, chainIdTruncated };
 };
