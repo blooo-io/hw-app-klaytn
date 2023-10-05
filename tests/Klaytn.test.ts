@@ -57,7 +57,7 @@ test("getAddress without display", async () => {
   );
 });
 
-TODO: CHANGE PATH
+// TODO: CHANGE PATH
 test("getAddress with display", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
