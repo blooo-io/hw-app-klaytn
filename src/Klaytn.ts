@@ -1,26 +1,34 @@
 import Transport from "@ledgerhq/hw-transport";
 import { StatusCodes } from "@ledgerhq/errors";
-import { pathToBuffer, serializeLegacyTransaction } from "./serialization";
-import Caver, { LegacyTransaction } from "caver-js";
+import { pathToBuffer, serializeLegacyTransaction, serializeSignature, serializeKlaytnTransaction } from "./serialization";
+import Caver, { Transaction, LegacyTransaction, ValueTransfer, ValueTransferMemo, SmartContractDeploy, SmartContractExecution, Cancel, FeeDelegatedValueTransfer, FeeDelegatedValueTransferMemo, FeeDelegatedSmartContractDeploy, FeeDelegatedSmartContractExecution, FeeDelegatedCancel, FeeDelegatedValueTransferWithRatio, FeeDelegatedValueTransferMemoWithRatio, FeeDelegatedSmartContractDeployWithRatio, FeeDelegatedSmartContractExecutionWithRatio, FeeDelegatedCancelWithRatio } from "caver-js";
 
 const P1_NON_CONFIRM = 0x00;
 const P1_CONFIRM = 0x01;
 
-const P1_FIRST = 0x00
-const P1_MORE = 0x80
+const P1_BASIC = 0x00
+const P1_FEE_DELEGATED = 0x01
+const P1_FEE_DELEGATED_WITH_RATIO = 0x02
 
-const P2_SIGN = 0x00;
+const P2_NONE = 0x00
+const P2_EXTEND = 0x01
+const P2_MORE = 0x02
 
 const LEDGER_CLA = 0xe0;
 const CLA_OFFSET = 0x00;
 
 const INS = {
-  GET_VERSION: 0x06,
+  GET_VERSION: 0x01,
   GET_ADDR: 0x02,
-  SIGN_LEGACY_TRANSACTION: 0x04,
+  SIGN_LEGACY: 0x04,
+  SIGN_VALUE_TRANSFER: 0x08,
+  SIGN_VALUE_TRANSFER_MEMO: 0x10,
+  SIGN_SMART_CONTRACT_DEPLOY: 0x28,
+  SIGN_SMART_CONTRACT_EXECUTION: 0x30,
+  SIGN_CANCEL: 0x38
 };
 
-const klay_path = "44'/8217'/0'/0'/0'";
+const klay_path = "44'/8217'/0'/0/0";
 const caver = new Caver();
 
 /**
@@ -57,14 +65,14 @@ export default class Klaytn {
    * helium.getVersion().then(r => r.version)
    */
   async getVersion(): Promise<{ version: string }> {
-    const [ _, major, minor, patch] = await this.sendToDevice(
+    const [allow_blind_sign, major, minor, patch] = await this.sendToDevice(
       INS.GET_VERSION,
       P1_NON_CONFIRM,
       0,
       Buffer.from([])
     );
-      console.log("version:", major,minor,patch);
-      
+    console.log("version:", major, minor, patch);
+    console.log("allow_blind_sign:", allow_blind_sign ? "true" : "false");
     return {
       version: `${major}.${minor}.${patch}`,
     };
@@ -110,11 +118,11 @@ export default class Klaytn {
           .toString("ascii"),
       chainCode: accountIndex
         ? addressBuffer
-            .subarray(
-              1 + publicKeyLength + 1 + addressLength,
-              1 + publicKeyLength + 1 + addressLength + 32
-            )
-            .toString("hex")
+          .subarray(
+            1 + publicKeyLength + 1 + addressLength,
+            1 + publicKeyLength + 1 + addressLength + 32
+          )
+          .toString("hex")
         : undefined,
     };
   }
@@ -137,54 +145,30 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: Buffer; signedTxn: LegacyTransaction }> {
 
-    const {payloads, txType, chainId, chainIdTruncated} = serializeLegacyTransaction(txn, klay_path);
+    const { payloads, txType, chainId, chainIdTruncated } = serializeLegacyTransaction(txn, klay_path);
     console.log("payloads =", payloads);
 
     let response = await this.sendToDevice(
-      INS.SIGN_LEGACY_TRANSACTION,
-      P1_FIRST,
-      P2_SIGN,
+      INS.SIGN_LEGACY,
+      P1_BASIC,
+      P2_NONE,
       payloads[0]
     );
-  
-    for(let i=1; i<payloads.length; i++){
+
+    for (let i = 1; i < payloads.length; i++) {
       response = await this.sendToDevice(
-        INS.SIGN_LEGACY_TRANSACTION,
-        P1_MORE,
-        P2_SIGN,
+        INS.SIGN_LEGACY,
+        P1_BASIC,
+        P2_EXTEND,
         payloads[i],
       );
     }
-    
+
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = response;
-    const signatureStr: string = "0x" + response.toString("hex");
-    console.log("signature string = ", signatureStr)
+    console.log("signature string = 0x", response.toString("hex"))
 
-    const response_byte: number = response[0];
-    let v = "";
-    if (chainId.times(2).plus(35).plus(1).gt(255)) {
-      const oneByteChainId = (chainIdTruncated * 2 + 35) % 256;
-
-      const ecc_parity = Math.abs(response_byte - oneByteChainId);
-      if (txType != null) {
-        // For EIP2930 and EIP1559 tx, v is simply the parity.
-        v = ecc_parity % 2 == 1 ? "00" : "01";
-      } else {
-        // Legacy type transaction with a big chain ID
-        v = chainId.times(2).plus(35).plus(ecc_parity).toString(16);
-      }
-    } else {
-      v = response_byte.toString(16);
-    }
-    // Make sure v has is prefixed with a 0 if its length is odd ("1" -> "01").
-    if (v.length % 2 == 1) {
-      v = "0" + v;
-    }
-
-    const r = response.subarray(1, 1 + 32).toString("hex");
-    const s = response.subarray(1 + 32, 1 + 32 + 32).toString("hex");
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
 
     let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
 
@@ -196,7 +180,756 @@ export default class Klaytn {
     console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
 
     return {
-      signature,
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signValueTransfer(
+    txn: ValueTransfer,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: ValueTransfer }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_VALUE_TRANSFER,
+      P1_BASIC,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_VALUE_TRANSFER,
+        P1_BASIC,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signValueTransferMemo(
+    txn: ValueTransferMemo,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: ValueTransferMemo }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads[", payloads.length, "] =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_VALUE_TRANSFER_MEMO,
+      P1_BASIC,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_VALUE_TRANSFER_MEMO,
+        P1_BASIC,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signSmartContractDeploy(
+    txn: SmartContractDeploy,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: SmartContractDeploy }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_SMART_CONTRACT_DEPLOY,
+      P1_BASIC,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_SMART_CONTRACT_DEPLOY,
+        P1_BASIC,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signSmartContractExecution(
+    txn: SmartContractExecution,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: SmartContractExecution }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_SMART_CONTRACT_EXECUTION,
+      P1_BASIC,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_SMART_CONTRACT_EXECUTION,
+        P1_BASIC,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signCancel(
+    txn: Cancel,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: Cancel }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    let response = await this.sendToDevice(
+      INS.SIGN_CANCEL,
+      P1_BASIC,
+      P2_NONE,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      response = await this.sendToDevice(
+        INS.SIGN_CANCEL,
+        P1_BASIC,
+        P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedValueTransfer(
+    txn: FeeDelegatedValueTransfer,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedValueTransfer }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_VALUE_TRANSFER,
+      P1_FEE_DELEGATED,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_VALUE_TRANSFER,
+        P1_FEE_DELEGATED,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedValueTransferMemo(
+    txn: FeeDelegatedValueTransferMemo,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedValueTransferMemo }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_VALUE_TRANSFER_MEMO,
+      P1_FEE_DELEGATED,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_VALUE_TRANSFER_MEMO,
+        P1_FEE_DELEGATED,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedSmartContractDeploy(
+    txn: FeeDelegatedSmartContractDeploy,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedSmartContractDeploy }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_SMART_CONTRACT_DEPLOY,
+      P1_FEE_DELEGATED,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_SMART_CONTRACT_DEPLOY,
+        P1_FEE_DELEGATED,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedSmartContractExecution(
+    txn: FeeDelegatedSmartContractExecution,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedSmartContractExecution }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_SMART_CONTRACT_EXECUTION,
+      P1_FEE_DELEGATED,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_SMART_CONTRACT_EXECUTION,
+        P1_FEE_DELEGATED,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedCancel(
+    txn: FeeDelegatedCancel,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedCancel }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_CANCEL,
+      P1_FEE_DELEGATED,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_CANCEL,
+        P1_FEE_DELEGATED,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedValueTransferWithRatio(
+    txn: FeeDelegatedValueTransferWithRatio,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedValueTransferWithRatio }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_VALUE_TRANSFER,
+      P1_FEE_DELEGATED_WITH_RATIO,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_VALUE_TRANSFER,
+        P1_FEE_DELEGATED_WITH_RATIO,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedValueTransferMemoWithRatio(
+    txn: FeeDelegatedValueTransferMemoWithRatio,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedValueTransferMemoWithRatio }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_VALUE_TRANSFER_MEMO,
+      P1_FEE_DELEGATED_WITH_RATIO,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_VALUE_TRANSFER_MEMO,
+        P1_FEE_DELEGATED_WITH_RATIO,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedSmartContractDeployWithRatio(
+    txn: FeeDelegatedSmartContractDeployWithRatio,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedSmartContractDeployWithRatio }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_SMART_CONTRACT_DEPLOY,
+      P1_FEE_DELEGATED_WITH_RATIO,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_SMART_CONTRACT_DEPLOY,
+        P1_FEE_DELEGATED_WITH_RATIO,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedSmartContractExecutionWithRatio(
+    txn: FeeDelegatedSmartContractExecutionWithRatio,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedSmartContractExecutionWithRatio }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_SMART_CONTRACT_EXECUTION,
+      P1_FEE_DELEGATED_WITH_RATIO,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_SMART_CONTRACT_EXECUTION,
+        P1_FEE_DELEGATED_WITH_RATIO,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
+      signedTxn: txn,
+    };
+  }
+
+  async signFeeDelegatedCancelWithRatio(
+    txn: FeeDelegatedCancelWithRatio,
+    accountIndex = 0
+  ): Promise<{ signature: Buffer; signedTxn: FeeDelegatedCancelWithRatio }> {
+
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path);
+    console.log("payloads =", payloads);
+
+    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE
+    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE
+    // If only 1 chunk, send with P2_NONE
+    // Else, send all chunks with P2_MORE except for the last chunk
+    // Send all chunks with P2_EXTEND except for the first chunk
+    let response = await this.sendToDevice(
+      INS.SIGN_CANCEL,
+      P1_FEE_DELEGATED_WITH_RATIO,
+      firstP2,
+      payloads[0]
+    );
+
+    for (let i = 1; i < payloads.length; i++) {
+      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
+      response = await this.sendToDevice(
+        INS.SIGN_CANCEL,
+        P1_FEE_DELEGATED_WITH_RATIO,
+        P2Type | P2_EXTEND,
+        payloads[i],
+      );
+    }
+
+    if (response.length === 1) throw new Error("User has declined.");
+
+    console.log("signature string = 0x", response.toString("hex"))
+
+    const { v, r, s } = serializeSignature(response, chainId, chainIdTruncated, txType);
+
+    let signatureData = new caver.wallet.keyring.signatureData([v, r, s])
+
+    txn.appendSignatures(signatureData)
+    let signedRawTx = txn.getRawTransaction();
+
+    console.log("signedRawTx =", signedRawTx);
+    console.log("v =", v, "\nr =", r, "\ns =", s);
+    // console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+
+    return {
+      signature: response,
       signedTxn: txn,
     };
   }
