@@ -32,14 +32,14 @@ const klay_path = "44'/8217'/0'/0/0";
 const caver = new Caver();
 
 /**
- * Helium API
+ * Klaytn API
  *
  * @param transport a transport for sending commands to a device
  * @param scrambleKey a scramble key
  *
  * @example
- * import Helium from "@ledgerhq/hw-app-helium";
- * const helium = new Helium(transport);
+ * import Klaytn from "@ledgerhq/hw-app-klaytn";
+ * const klaytn = new Klaytn(transport);
  */
 export default class Klaytn {
   private transport: Transport;
@@ -62,7 +62,7 @@ export default class Klaytn {
    * @returns version object
    *
    * @example
-   * helium.getVersion().then(r => r.version)
+   * klaytn.getVersion().then(r => r.version)
    */
   async getVersion(): Promise<{ version: string }> {
     const [allow_blind_sign, major, minor, patch] = await this.sendToDevice(
@@ -79,7 +79,7 @@ export default class Klaytn {
   }
 
   /**
-   * Get Helium address (public key) for a BIP32 path.
+   * Get Klaytn address (public key) for a BIP32 path.
    *
    * @param path a BIP32 path
    * @param display flag to show display
@@ -87,7 +87,7 @@ export default class Klaytn {
    * @returns an object with the address field
    *
    * @example
-   * helium.getAddress("44'/904'/0'/0'/0'").then(r => r.address)
+   * klaytn.getAddress("44'/904'/0'/0'/0'").then(r => r.address)
    */
   async getAddress(
     path: string,
@@ -128,7 +128,7 @@ export default class Klaytn {
   }
 
   /**
-   * Sign a Helium `PaymentV2` transaction.
+   * Sign a Klaytn `PaymentV2` transaction.
    *
    * @param txn a PaymentV2 transaction
    * @param accountIndex index of account address
@@ -136,9 +136,9 @@ export default class Klaytn {
    * @returns an object with the signed transaction and signature
    *
    * @example
-   * import { PaymentV2 } from '@helium/transactions'
+   * import { PaymentV2 } from '@klaytn/transactions'
    * const txn = new PaymentV2({ ... })
-   * helium.signTransaction(txn).then(r => r.signature)
+   * klaytn.signTransaction(txn).then(r => r.signature)
    */
   async signLegacyTransaction(
     txn: LegacyTransaction,
