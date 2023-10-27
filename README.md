@@ -5,13 +5,13 @@
 
 ## @ledgerhq/hw-app-helium
 
-Ledger Hardware Wallet Helium JavaScript bindings.
+Ledger Hardware Wallet Klaytn JavaScript bindings.
 
 ***
 
 ## Are you adding Ledger support to your software wallet?
 
-You may be using this package to communicate with the Helium Nano App.
+You may be using this package to communicate with the Klaytn Nano App.
 
 For a smooth and quick integration:
 
@@ -26,7 +26,7 @@ For a smooth and quick integration:
 
 #### Table of Contents
 
-*   [Helium](#helium)
+*   [Klaytn](#helium)
     *   [Parameters](#parameters)
     *   [Examples](#examples)
     *   [getVersion](#getversion)
@@ -53,9 +53,9 @@ For a smooth and quick integration:
         *   [Parameters](#parameters-7)
         *   [Examples](#examples-8)
 
-### Helium
+### Klaytn
 
-Helium API
+Klaytn API
 
 #### Parameters
 
@@ -65,8 +65,8 @@ Helium API
 #### Examples
 
 ```javascript
-import Helium from "@ledgerhq/hw-app-helium";
-const helium = new Helium(transport);
+import Klaytn from "@ledgerhq/hw-app-helium";
+const helium = new Klaytn(transport);
 ```
 
 #### getVersion
@@ -83,7 +83,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### getAddress
 
-Get Helium address (public key) for a BIP32 path.
+Get Klaytn address (public key) for a BIP32 path.
 
 ##### Parameters
 
@@ -101,7 +101,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### signPaymentV2
 
-Sign a Helium `PaymentV2` transaction.
+Sign a Klaytn `PaymentV2` transaction.
 
 ##### Parameters
 
@@ -120,7 +120,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### signTokenBurnV1
 
-Sign a Helium `TokenBurnV1` transaction.
+Sign a Klaytn `TokenBurnV1` transaction.
 
 ##### Parameters
 
@@ -139,7 +139,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### signStakeValidatorV1
 
-Sign a Helium `StakeValidatorV1` transaction.
+Sign a Klaytn `StakeValidatorV1` transaction.
 
 ##### Parameters
 
@@ -158,7 +158,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### signUnstakeValidatorV1
 
-Sign a Helium `UnstakeValidatorV1` transaction.
+Sign a Klaytn `UnstakeValidatorV1` transaction.
 
 ##### Parameters
 
@@ -177,7 +177,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### signTransferValidatorStakeV1
 
-Sign a Helium `TransferValidatorStakeV1` transaction.
+Sign a Klaytn `TransferValidatorStakeV1` transaction.
 
 ##### Parameters
 
@@ -197,7 +197,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 #### signSecurityExchangeV1
 
-Sign a Helium `SecurityExchangeV1` transaction.
+Sign a Klaytn `SecurityExchangeV1` transaction.
 
 ##### Parameters
 
