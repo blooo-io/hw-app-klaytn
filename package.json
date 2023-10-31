@@ -1,6 +1,6 @@
 {
   "name": "@ledgerhq/hw-app-klaytn",
-  "version": "6.29.7",
+  "version": "0.0.1",
   "description": "Ledger Hardware Wallet Klaytn Application API",
   "keywords": [
     "Ledger",
