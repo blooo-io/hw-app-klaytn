@@ -42,7 +42,7 @@
   },
   "scripts": {
     "clean": "rimraf lib lib-es",
-    "build": "tsc && tsc -m ES6 --outDir lib",
+    "build": "rimraf lib lib-es && tsc && tsc -m ES6 --outDir lib-es",
     "build:kaikas": "tsc && tsc -m ES6 --outDir '../kaikas-pixelplex/ui/lib'",
     "build:kaikas-tuto": "tsc && tsc -m ES6 --outDir '../../kaikas-tutorial/src/lib'",
     "build:pure-js": "tsc && tsc -m ES6 --outDir '../../stellar-prep/lib'",
