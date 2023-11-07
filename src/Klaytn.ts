@@ -87,7 +87,7 @@ export default class Klaytn {
    * @returns an object with the address field
    *
    * @example
-   * klaytn.getAddress("44'/904'/0'/0'/0'").then(r => r.address)
+   * klaytn.getAddress("44'/8217'/0'/0'/0'").then(r => r.address)
    */
   async getAddress(
     path: string,

@@ -31,14 +31,14 @@ test("getVersion", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
             => e001000000
-            <= 000103019000
+            <= 000000019000
         `)
   );
   const klaytn = new Klaytn(transport);
   console.log("getVersion");
   const result = await klaytn.getVersion();
   expect(result).toEqual({
-    version: "1.3.1",
+    version: "0.0.1",
   });
 });
 
@@ -57,7 +57,6 @@ test("getAddress without display", async () => {
   );
 });
 
-// TODO: CHANGE PATH
 test("getAddress with display", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
