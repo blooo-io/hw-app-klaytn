@@ -896,26 +896,16 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    console.log("signature string = 0x", response.toString("hex"));
-
-    const { v, r, s } = serializeSignature(
+    const signature = this.selializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
       txType
     );
-
-    let signatureData = new caver.wallet.keyring.signatureData([v, r, s]);
-
-    txn.appendSignatures(signatureData);
-    let signedRawTx = txn.getRawTransaction();
-
-    console.log("signedRawTx =", signedRawTx);
-    console.log("v =", v, "\nr =", r, "\ns =", s);
-    // console.log("recovered pubk:", caver.klay.accounts.recoverTransaction(signedRawTx));
+    txn.appendSignatures(signature);
 
     return {
-      signature: response,
+      signature: signature,
       signedTxn: txn,
     };
   }
