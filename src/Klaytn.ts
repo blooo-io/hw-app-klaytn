@@ -52,7 +52,7 @@ const INS = {
   SIGN_CANCEL: 0x38,
 };
 
-const klay_path = "44'/8217'/0'/0/0";
+const klay_path = "44'/8217'/0'/0/";
 const caver = new Caver();
 
 /**
@@ -111,7 +111,7 @@ export default class Klaytn {
    * @returns an object with the address field
    *
    * @example
-   * klaytn.getAddress("44'/8217'/0'/0'/0'").then(r => r.address)
+   * klaytn.getAddress("44'/8217'/0'/0/").then(r => r.address)
    */
   async getAddress(
     path: string,
@@ -122,12 +122,12 @@ export default class Klaytn {
     publicKey: string;
     chainCode: string | undefined;
   }> {
-    const pathBuffer = pathToBuffer(path);
+    const pathBuffer = pathToBuffer(path+accountIndex);
 
     const addressBuffer = await this.sendToDevice(
       INS.GET_ADDR,
       display ? P1_CONFIRM : P1_NON_CONFIRM,
-      accountIndex,
+      0,
       pathBuffer
     );
 
@@ -173,7 +173,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: LegacyTransaction }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeLegacyTransaction(txn, klay_path);
+      serializeLegacyTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     let response = await this.sendToDevice(
@@ -213,7 +213,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: ValueTransfer }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -259,7 +259,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: ValueTransferMemo }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads[", payloads.length, "] =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -305,7 +305,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: SmartContractDeploy }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -350,7 +350,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: SmartContractExecution }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -395,7 +395,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: Cancel }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     let response = await this.sendToDevice(
@@ -435,7 +435,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: FeeDelegatedValueTransfer }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -483,7 +483,7 @@ export default class Klaytn {
     signedTxn: FeeDelegatedValueTransferMemo;
   }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -532,7 +532,7 @@ export default class Klaytn {
     signedTxn: FeeDelegatedSmartContractDeploy;
   }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -581,7 +581,7 @@ export default class Klaytn {
     signedTxn: FeeDelegatedSmartContractExecution;
   }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -627,7 +627,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: FeeDelegatedCancel }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -676,7 +676,7 @@ export default class Klaytn {
     signedTxn: FeeDelegatedValueTransferWithRatio;
   }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -725,7 +725,7 @@ export default class Klaytn {
     signedTxn: FeeDelegatedValueTransferMemoWithRatio;
   }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -774,7 +774,7 @@ export default class Klaytn {
     signedTxn: FeeDelegatedSmartContractDeployWithRatio;
   }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -823,7 +823,7 @@ export default class Klaytn {
     signedTxn: FeeDelegatedSmartContractExecutionWithRatio;
   }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
@@ -869,7 +869,7 @@ export default class Klaytn {
     accountIndex = 0
   ): Promise<{ signature: string[]; signedTxn: FeeDelegatedCancelWithRatio }> {
     const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path);
+      serializeKlaytnTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
     const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
