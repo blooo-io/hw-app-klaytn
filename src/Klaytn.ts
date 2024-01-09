@@ -92,7 +92,7 @@ export default class Klaytn {
     const [allow_blind_sign, major, minor, patch] = await this.sendToDevice(
       INS.GET_VERSION,
       P1_NON_CONFIRM,
-      0,
+      P2_NONE,
       Buffer.from([])
     );
     console.log("version:", major, minor, patch);
@@ -127,7 +127,7 @@ export default class Klaytn {
     const addressBuffer = await this.sendToDevice(
       INS.GET_ADDR,
       display ? P1_CONFIRM : P1_NON_CONFIRM,
-      0,
+      P2_NONE,
       pathBuffer
     );
 
