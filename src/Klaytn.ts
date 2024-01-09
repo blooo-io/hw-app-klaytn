@@ -75,7 +75,26 @@ export default class Klaytn {
     this.transport = transport;
     this.transport.decorateAppAPIMethods(
       this,
-      ["getVersion", "getAddress", "signLegacyTransaction"],
+      [
+        "getVersion",
+        "getAddress",
+        "signLegacyTransaction",
+        "signValueTransfer",
+        "signValueTransferMemo",
+        "signSmartContractDeploy",
+        "signSmartContractExecution",
+        "signCancel",
+        "signFeeDelegatedValueTransfer",
+        "signFeeDelegatedValueTransferMemo",
+        "signFeeDelegatedSmartContractDeploy",
+        "signFeeDelegatedSmartContractExecution",
+        "signFeeDelegatedCancel",
+        "signFeeDelegatedValueTransferWithRatio",
+        "signFeeDelegatedValueTransferMemoWithRatio",
+        "signFeeDelegatedSmartContractDeployWithRatio",
+        "signFeeDelegatedSmartContractExecutionWithRatio",
+        "signFeeDelegatedCancelWithRatio",
+      ],
       scrambleKey
     );
   }
@@ -122,7 +141,7 @@ export default class Klaytn {
     publicKey: string;
     chainCode: string | undefined;
   }> {
-    const pathBuffer = pathToBuffer(path+accountIndex);
+    const pathBuffer = pathToBuffer(path + accountIndex);
 
     const addressBuffer = await this.sendToDevice(
       INS.GET_ADDR,
