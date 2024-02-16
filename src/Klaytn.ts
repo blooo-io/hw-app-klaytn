@@ -213,7 +213,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -259,7 +259,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -305,7 +305,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -350,7 +350,7 @@ export default class Klaytn {
     }
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -377,6 +377,7 @@ export default class Klaytn {
     // If only 1 chunk, send with P2_NONE
     // Else, send all chunks with P2_MORE except for the last chunk
     // Send all chunks with P2_EXTEND except for the first chunk
+
     let response = await this.sendToDevice(
       INS.SIGN_SMART_CONTRACT_EXECUTION,
       P1_BASIC,
@@ -395,7 +396,7 @@ export default class Klaytn {
     }
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -435,7 +436,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -480,7 +481,7 @@ export default class Klaytn {
     }
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -529,7 +530,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -578,7 +579,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -627,7 +628,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -673,7 +674,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -722,7 +723,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -771,7 +772,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -820,7 +821,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -869,7 +870,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -915,7 +916,7 @@ export default class Klaytn {
 
     if (response.length === 1) throw new Error("User has declined.");
 
-    const signature = this.selializeAndFormatSignature(
+    const signature = this.serializeAndFormatSignature(
       response,
       chainId,
       chainIdTruncated,
@@ -928,7 +929,7 @@ export default class Klaytn {
       signedTxn: txn,
     };
   }
-  private selializeAndFormatSignature(
+  private serializeAndFormatSignature(
     response: Buffer,
     chainId: BigNumber,
     chainIdTruncated: number,
