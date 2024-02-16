@@ -14,6 +14,12 @@ const serializePath = (path: number[]): Buffer => {
   }
   return buf;
 };
+function doesStringIncludeAnyValueInArray(
+  string: string,
+  array: string[]
+): boolean {
+  return array.some((v) => string.includes(v))
+}
 
 function decodeTxInfo(rawTx: Buffer, txType: string) {
   const rlpData = rawTx
@@ -24,20 +30,17 @@ function decodeTxInfo(rawTx: Buffer, txType: string) {
   console.log("rlpDecoded:", rlpDecoded)
 
   let decodedChainId;
-  if (txType === "TxTypeValueTransfer") {
-    console.log("Value Transfer txType");
-    decodedChainId = rlpTx[1];
-  } else if (txType === "TxTypeValueTransferMemo") {
-    console.log("Value Transfer Memo txType");
-    decodedChainId = rlpTx[1];
-  } else if (txType === "TxTypeSmartContractDeploy") {
-    console.log("Smart Contract Deploy txType");
-    decodedChainId = rlpTx[1];
-  } else if (txType === "TxTypeCancel") {
-    console.log("Cancel txType");
-    decodedChainId = rlpTx[1];
-  } else if (txType === "TxTypeFeeDelegatedValueTransfer") {
-    console.log("Fee Delegated Value Transfer txType");
+  const TRANSACTION_TYPES = [
+    "ValueTransfer",
+    "ValueTransferMemo",
+    "SmartContractDeploy",
+    "SmartContractExecution",
+    "Cancel",
+    "FeeDelegatedValueTransfer",
+  ];
+
+  console.log(txType)
+  if (doesStringIncludeAnyValueInArray(txType, TRANSACTION_TYPES)) {
     decodedChainId = rlpTx[1];
   } else {
     console.log("Legacy txType");
