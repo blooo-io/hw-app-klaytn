@@ -7,7 +7,6 @@ import Caver, {
   ValueTransferMemo,
 } from "caver-js";
 import { encode, decode } from "@ethersproject/rlp";
-import { rlpEncodeForValueTransfer } from "caver-js/packages/caver-klay/caver-klay-accounts/src/transactionType/valueTransfer.js";
 
 const caver = new Caver();
 
@@ -206,7 +205,6 @@ export const serializeLegacyTransaction = (
   console.log("txn in lib =", txn);
   const rawTxHex = txn.getRLPEncodingForSignature();
   console.log("rawTx getRLP =", rawTxHex);
-  console.log("rawTx getCommonRLP =", txn.getCommonRLPEncodingForSignature());
   const rawTx = Buffer.from(rawTxHex.slice(2), "hex");
 
   const { vrsOffset, txType, chainId, chainIdTruncated } = decodeTxInfo(
@@ -232,7 +230,7 @@ export const serializeKlaytnTransaction = (
   // console.log("commonRlpSig =", commonRlpSig)
 
   const rlpSig = txn.getRLPEncodingForSignature();
-  // console.log("rlpSig =", rlpSig)
+  console.log("--km-logs [serializatio] (serializeKlaytnTransaction): RLP for signature =", rlpSig)
 
   // const getRawTx = txn.getRawTransaction();
   // console.log("getRawTx =", getRawTx)
