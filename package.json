@@ -1,6 +1,6 @@
 {
-  "name": "@ledgerhq/hw-app-klaytn",
-  "version": "0.1.1",
+  "name": "@blooo/hw-app-klaytn",
+  "version": "1.0.0",
   "description": "Ledger Hardware Wallet Klaytn Application API",
   "keywords": [
     "Ledger",
@@ -13,12 +13,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/blooo-io/@ledgerhq/hw-app-klaytn"
+    "url": "https://github.com/blooo-io/hw-app-klaytn"
   },
   "bugs": {
-    "url": "https://github.com/blooo-io/@ledgerhq/hw-app-klaytn/issues"
+    "url": "https://github.com/blooo-io/hw-app-klaytn/issues"
   },
-  "homepage": "https://github.com/blooo-io/@ledgerhq/hw-app-klaytn",
+  "homepage": "https://github.com/blooo-io/hw-app-klaytn",
   "publishConfig": {
     "access": "public"
   },
