@@ -79,8 +79,8 @@ async function performSigningAndValidation(
   expected_apdu_out: string,
   txn: AbstractTransaction
 ) {
-  try {
-    const transport = await openTransportReplayer(
+
+  const transport = await openTransportReplayer(
       RecordStore.fromString(`
           => ${expected_apdu_in}
           <= ${expected_apdu_out}
@@ -92,17 +92,13 @@ async function performSigningAndValidation(
     const { signature, signedTxn } = await signingMethod(txn as any);
     console.log("Transaction after adding signature:");
     logTxn(signedTxn);
-    return validateTransaction(signedTxn);
-  } catch (error) {
-    throw error;
-  }
+    await validateTransaction(signedTxn);
 }
 
 async function performSigningAndValidationForLongerTransaction(
   apdus: string[],
   txn: AbstractTransaction
 ) {
-  try {
     for (let apdu of apdus) {
       let index = apdus.indexOf(apdu);
       if (index % 2 == 0) {
@@ -114,18 +110,13 @@ async function performSigningAndValidationForLongerTransaction(
     const transport = await openTransportReplayer(
       RecordStore.fromString(apdus.join("\n"))
     );
-
     await txn.fillTransaction();
     const klaytn = new Klaytn(transport);
     const signingMethod = getMethodToSignTransaction(txn, klaytn);
     const { signature, signedTxn } = await signingMethod(txn as any);
     console.log("Transaction after adding signature:");
     logTxn(signedTxn);
-    return validateTransaction(signedTxn);
-  } catch (error) {
-    console.error("ERROR:", error);
-    throw error;
-  }
+    await validateTransaction(signedTxn);
 }
 
 function getMethodToSignTransaction(txn: AbstractTransaction, klaytn: Klaytn) {
@@ -184,10 +175,9 @@ const validateTransaction = async (
   signedTxn: AbstractTransaction,
   expectedAddress: string = test_sender_address
 ) => {
-  try{
     const recoveredAddress = getRecoveredAddressFromSignedTxn(signedTxn);
     const signaturesGeneratedByLedger = signedTxn.signatures;
-    signedTxn.signatures = [];
+    signedTxn.signatures = []; // remove signatures to sign with caver
     const signaturesGeneratedByCaver = await signTransactionWithCaver(signedTxn);
     console.log(
       `(${signedTxn.type})signaturesGeneratedByLedger:`,
@@ -201,11 +191,7 @@ const validateTransaction = async (
       signaturesGeneratedByCaver.toString()
     );
     expect(recoveredAddress).toEqual(expectedAddress);
-    return true
-  } catch (error){
-    console.error("ERROR:", error);
-    return false
-  }
+
 };
 
 const getRecoveredPublicKeyFromSignedTxn = (
@@ -276,9 +262,9 @@ test("signLegacyTransaction with display", async () => {
       nonce: 25,
       chainId: CHAIN_ID,
     });
-  performSigningAndValidation(
+  await performSigningAndValidation(
     "e00400003d058000002c80002019800000000000000000000000e719850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01808203e98080",
-    "248186ff6cd6a5e891b1dc9165ae349a4cda5ad2432a81a541b8189ac8f7b020603f8dc7a0a8120a392982d8bb44be6ea34757d85b366558389e16cc26b67ead729000",
+    "f68186ff6cd6a5e891b1dc9165ae349a4cda5ad2432a81a541b8189ac8f7b020603f8dc7a0a8120a392982d8bb44be6ea34757d85b366558389e16cc26b67ead729000",
     txnToSign
   );
 });
@@ -293,7 +279,7 @@ test("signValueTransfer with display", async () => {
     nonce: 4444,
     chainId: CHAIN_ID,
   });
-  performSigningAndValidation(
+  await performSigningAndValidation(
     "e008000065058000002c80002019800000000000000000000000f84eb847f8450882115c850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a8ca18f07d736b90be550000001946e93a3acfbadf457f29fb0e57fa42274004c32ea8203e98080",
     "f543047b1e0e19e2d62364436833d3c8c50f657eea1a96b123c4941b1c3ef64cd8678c708c5c0dd840538f9a9781ec5f99b7a986d091fe5925c45e8b8e8f6751e39000",
     txnToSign
@@ -312,7 +298,7 @@ test("signValueTransferMemo with display", async () => {
       chainId: CHAIN_ID,
       input: "0x68656c6c6f", // hello
     });
-  performSigningAndValidation(
+  await performSigningAndValidation(
     "e01000005d058000002c80002019800000000000000000000000f846b83ff83d1019850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01946e93a3acfbadf457f29fb0e57fa42274004c32ea8568656c6c6f8203e98080",
     "f62541f70b57efb801bff9794d47550ceaf8b436325fbe92f3038d40746bdb18da000b76375d443f984bfc5d8918673460999439a72a7efe2c973285c2e38874149000",
     txnToSign
@@ -334,7 +320,7 @@ test("signSmartContractDeploy with display", async () => {
     });
   // const caverSig = await signTransactionWithCaver(txnToSign);
   // console.log("CAVER SIGNATURES:", caverSig);
-  return performSigningAndValidation(
+  await performSigningAndValidation(
     "e028000048058000002c80002019800000000000000000000000f2aceb2819850ba43b7400830493e08001946e93a3acfbadf457f29fb0e57fa42274004c32ea8568656c6c6f80808203e98080",
     "f61bc8ea648ac9b2df8b3efd368f2def4a8d3ca03cd0244f56dfd23284032bf49834ee2f7abc80e104ef767498cc3b0cf4543cf9a781c37b38b3145a6b72ec3b859000",
     txnToSign
@@ -407,7 +393,7 @@ test("signFeeDelegatedValueTransferMemo with display", async () => {
       chainId: CHAIN_ID,
       input: "0x68656c6c6f", // hello
     });
-  performSigningAndValidation(
+  await performSigningAndValidation(
     "e01001005d058000002c80002019800000000000000000000000f846b83ff83d1119850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01946e93a3acfbadf457f29fb0e57fa42274004c32ea8568656c6c6f8203e98080",
     "f5e63c67f2f2737be306e9c8c9f322eaf095de7f4a1c4a4b91d26a2e9b2378c7023cb82ce994e9d9965a547cff741125f1d37af0d80243996d6cb8cad760c67f1e9000",
     txnToSign
@@ -427,9 +413,9 @@ test("signFeeDelegatedSmartContractDeploy with display", async () => {
       // real input from https://scope.klaytn.com/tx/0x19b7bad2be2963cba792154e5394cdc545f68ffbf883c25cdd78e96b4a64bf4f?tabId=rawData
       // input: "0x6080604052600560005534801561001557600080fd5b5060405161029c38038061029c8339818101604052810190610037919061007f565b80600081905550506100ac565b600080fd5b6000819050919050565b61005c81610049565b811461006757600080fd5b50565b60008151905061007981610053565b92915050565b60006020828403121561009557610094610044565b5b60006100a38482850161006a565b91505092915050565b6101e1806100bb6000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630dbe671f14610046578063d732d95514610064578063e8927fbc1461006e575b600080fd5b61004e610078565b60405161005b91906100d7565b60405180910390f35b61006c61007e565b005b6100766100a3565b005b60005481565b60008054146100a15760016000808282546100999190610121565b925050819055505b565b60016000808282546100b59190610155565b92505081905550565b6000819050919050565b6100d1816100be565b82525050565b60006020820190506100ec60008301846100c8565b92915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600061012c826100be565b9150610137836100be565b92508282101561014a576101496100f2565b5b828203905092915050565b6000610160826100be565b915061016b836100be565b9250827fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff038211156101a05761019f6100f2565b5b82820190509291505056fea264697066735822122011473ea0fe0dcd65952f4315de5458369b91cb3a2f53790f0906775227a6070c64736f6c634300080f00330000000000000000000000000000000000000000000000000000000000000001"
     });
-  performSigningAndValidation(
+  await performSigningAndValidation(
     "e028010048058000002c80002019800000000000000000000000f2aceb2919850ba43b7400830493e08001946e93a3acfbadf457f29fb0e57fa42274004c32ea8568656c6c6f80808203e98080",
-    "f61bc8ea648ac9b2df8b3efd368f2def4a8d3ca03cd0244f56dfd23284032bf49834ee2f7abc80e104ef767498cc3b0cf4543cf9a781c37b38b3145a6b72ec3b859000",
+    "f50e33693d6e30af7429df4e193aa4ef992a58a9234e451fe7003afd580dbb6bad37d03b4f5b819ecdeddce4966664ade4ba61a31d495d71830734dadafb663d8d9000",
     txnToSign
   );
 });
@@ -448,9 +434,9 @@ test("signFeeDelegatedSmartContractExecution with display", async () => {
       // real input from https://scope.klaytn.com/tx/0x0d9d3b79bd450c073e442776b5cc4ae2144c2b7065990c1e31dfcbe786bdc389?tabId=rawData
       // input: "0x095ea7b3000000000000000000000000f50782a24afcb26acb85d086cf892bfffb5731b5ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
     });
-  performSigningAndValidation(
+  await performSigningAndValidation(
     "e03001005d058000002c80002019800000000000000000000000f846b83ff83d3119850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01946e93a3acfbadf457f29fb0e57fa42274004c32ea8568656c6c6f8203e98080",
-    "f5bef23a3e3ec09d771d915d570ed970736984d9fc8b6c6c1d115044d4f9e5505c102ddd5d7bebf6f412b8e1d6b369e250c5435f88e4cb5c1c6588cc64bb9d62be9000",
+    "f5c8ae333c094b011f47304ab17bf20b9d97c34c6924148e10ddde14cb7ff0a7497bc789f1016abab21c1e04c6c93d5d225037fde414227f7ee199574e0df8c30f9000",
     txnToSign
   );
 });
