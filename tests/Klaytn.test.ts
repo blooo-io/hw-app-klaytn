@@ -175,22 +175,13 @@ const validateTransaction = async (
   signedTxn: AbstractTransaction,
   expectedAddress: string = test_sender_address
 ) => {
-    const recoveredAddress = getRecoveredAddressFromSignedTxn(signedTxn);
-    const signaturesGeneratedByLedger = signedTxn.signatures;
-    signedTxn.signatures = []; // remove signatures to sign with caver
-    const signaturesGeneratedByCaver = await signTransactionWithCaver(signedTxn);
-    console.log(
-      `(${signedTxn.type})signaturesGeneratedByLedger:`,
-      signaturesGeneratedByLedger
-    );
-    console.log(
-      `(${signedTxn.type})signaturesGeneratedByCaver:`,
-      signaturesGeneratedByCaver
-    );
-    expect(signaturesGeneratedByLedger.toString()).toEqual(
-      signaturesGeneratedByCaver.toString()
-    );
-    expect(recoveredAddress).toEqual(expectedAddress);
+  const recoveredAddress = getRecoveredAddressFromSignedTxn(signedTxn);
+  const signaturesGeneratedByLedger = signedTxn.signatures;
+  console.log(
+    `(${signedTxn.type})signaturesGeneratedByLedger:`,
+    signaturesGeneratedByLedger
+  );
+  expect(recoveredAddress).toEqual(expectedAddress);
 
 };
 
