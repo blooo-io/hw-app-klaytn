@@ -1,30 +1,30 @@
 {
-  "name": "@ledgerhq/hw-app-eth",
-  "version": "6.29.7",
-  "description": "Ledger Hardware Wallet Ethereum Application API",
+  "name": "@blooo/hw-app-klaytn",
+  "version": "1.0.0",
+  "description": "Ledger Hardware Wallet Klaytn Application API",
   "keywords": [
     "Ledger",
     "LedgerWallet",
-    "Ethereum",
-    "eth",
+    "Klaytn",
+    "KLAY",
     "NanoS",
     "Blue",
     "Hardware Wallet"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/LedgerHQ/ledger-live.git"
+    "url": "https://github.com/blooo-io/hw-app-klaytn"
   },
   "bugs": {
-    "url": "https://github.com/LedgerHQ/ledger-live/issues"
+    "url": "https://github.com/blooo-io/hw-app-klaytn/issues"
   },
-  "homepage": "https://github.com/LedgerHQ/ledger-live/tree/develop/libs/ledgerjs/packages/hw-app-eth",
+  "homepage": "https://github.com/blooo-io/hw-app-klaytn",
   "publishConfig": {
     "access": "public"
   },
-  "main": "lib/Eth.js",
-  "module": "lib-es/Eth.js",
-  "types": "lib/Eth.d.ts",
+  "main": "lib/Klaytn.js",
+  "module": "lib-es/Klaytn.js",
+  "types": "lib/Klaytn.d.ts",
   "license": "Apache-2.0",
   "dependencies": {
     "@ethersproject/abi": "^5.5.0",
@@ -42,7 +42,7 @@
   },
   "scripts": {
     "clean": "rimraf lib lib-es",
-    "build": "tsc && tsc -m ES6 --outDir lib",
+    "build": "rimraf lib lib-es && tsc && tsc -m ES6 --outDir lib-es",
     "build:kaikas": "tsc && tsc -m ES6 --outDir '../kaikas-pixelplex/ui/lib'",
     "build:kaikas-tuto": "tsc && tsc -m ES6 --outDir '../../kaikas-tutorial/src/lib'",
     "build:pure-js": "tsc && tsc -m ES6 --outDir '../../stellar-prep/lib'",
