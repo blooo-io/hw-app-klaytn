@@ -27,14 +27,11 @@
   "types": "lib/Klaytn.d.ts",
   "license": "Apache-2.0",
   "dependencies": {
-    "@ethersproject/abi": "^5.5.0",
     "@ethersproject/rlp": "^5.7.0",
-    "@ledgerhq/cryptoassets": "^6.34.0",
     "@ledgerhq/errors": "^6.10.2",
     "@ledgerhq/hw-transport": "^6.27.4",
     "@ledgerhq/hw-transport-mocker": "^6.27.4",
     "@ledgerhq/logs": "^6.10.0",
-    "axios": "^0.26.1",
     "bignumber.js": "^9.1.0",
     "bip32-path": "^0.4.2",
     "caver-js": "^1.9.0"
