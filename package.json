@@ -1,6 +1,6 @@
 {
   "name": "@blooo/hw-app-klaytn",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ledger Hardware Wallet Klaytn Application API",
   "keywords": [
     "Ledger",
