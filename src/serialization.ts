@@ -8,6 +8,8 @@ import Caver, {
 } from "caver-js";
 import { encode, decode } from "@ethersproject/rlp";
 
+const MAX_CHUNK_SIZE = 150;
+
 const caver = new Caver();
 
 const serializePath = (path: number[]): Buffer => {
@@ -160,14 +162,20 @@ const serializeTransactionPayloads = (
   const paths = splitPath(path);
   let offset = 0;
   const payloads: Buffer[] = [];
-
-  while (offset !== rawTx.length) {
+  let buffer = Buffer.alloc(
+        1 + paths.length * 4
+      );
+  buffer[0] = paths.length;
+  paths.forEach((element, index) => {
+    buffer.writeUInt32BE(element, 1 + 4 * index);
+  });
+  payloads.push(buffer);
+  while(offset !== rawTx.length) {
     const first = offset === 0;
-    const maxChunkSize = first ? 150 - 1 - paths.length * 4 : 150;
     let chunkSize =
-      offset + maxChunkSize > rawTx.length
+      offset + MAX_CHUNK_SIZE > rawTx.length
         ? rawTx.length - offset
-        : maxChunkSize;
+        : MAX_CHUNK_SIZE;
 
     if (vrsOffset != 0 && offset + chunkSize >= vrsOffset) {
       // Make sure that the chunk doesn't end right on the EIP 155 marker if set
@@ -175,18 +183,11 @@ const serializeTransactionPayloads = (
     }
 
     const buffer = Buffer.alloc(
-      first ? 1 + paths.length * 4 + chunkSize : chunkSize
+      chunkSize
     );
 
-    if (first) {
-      buffer[0] = paths.length;
-      paths.forEach((element, index) => {
-        buffer.writeUInt32BE(element, 1 + 4 * index);
-      });
-      rawTx.copy(buffer, 1 + 4 * paths.length, offset, offset + chunkSize);
-    } else {
-      rawTx.copy(buffer, 0, offset, offset + chunkSize);
-    }
+    rawTx.copy(buffer, 0, offset, offset + chunkSize);
+
     payloads.push(buffer);
     offset += chunkSize;
   }
