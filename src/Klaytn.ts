@@ -108,8 +108,8 @@ export default class Klaytn {
   async getVersion(): Promise<{ version: string }> {
     const [major, minor, patch] = await this.sendToDevice(
       INS.GET_VERSION,
-      P1_NON_CONFIRM,
-      P2_NONE,
+      NONE,
+      NONE,
       Buffer.from([])
     );
     console.log("version:", major, minor, patch);
@@ -143,7 +143,7 @@ export default class Klaytn {
     const addressBuffer = await this.sendToDevice(
       INS.GET_PUBLIC_KEY,
       display ? P1_CONFIRM : P1_NON_CONFIRM,
-      P2_NONE,
+      NONE,
       pathBuffer
     );
 
@@ -190,18 +190,14 @@ export default class Klaytn {
       serializeLegacyTransaction(txn, klay_path + accountIndex);
     console.log("payloads =", payloads);
 
-    let response = await this.sendToDevice(
-      INS.SIGN_LEGACY,
-      P1_BASIC,
-      P2_NONE,
-      payloads[0]
-    );
+    let response;
 
-    for (let i = 1; i < payloads.length; i++) {
+    for (let i = 0; i < payloads.length; i++) {
+const lastChunk = i === payloads.length - 1;
       response = await this.sendToDevice(
-        INS.SIGN_LEGACY,
-        P1_BASIC,
-        P2_EXTEND,
+        INS.SIGN_TX,
+        P1_FIRST_CHUNK +i,
+        lastChunk ? P2_LAST :P2_MORE,
         payloads[i]
       );
     }
@@ -222,6 +218,7 @@ export default class Klaytn {
     };
   }
 
+  /**
   async signValueTransfer(
     txn: ValueTransfer,
     accountIndex = 0
@@ -924,6 +921,7 @@ export default class Klaytn {
       signedTxn: txn,
     };
   }
+  **/
   private serializeAndFormatSignature(
     response: Buffer,
     chainId: BigNumber,
