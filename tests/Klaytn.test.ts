@@ -75,28 +75,7 @@ async function signTransactionWithCaver(
 }
 
 async function performSigningAndValidation(
-  expected_apdu_in: string,
-  expected_apdu_out: string,
-  txn: AbstractTransaction
-) {
-
-  const transport = await openTransportReplayer(
-      RecordStore.fromString(`
-          => ${expected_apdu_in}
-          <= ${expected_apdu_out}
-      `)
-    );
-    await txn.fillTransaction();
-    const klaytn = new Klaytn(transport);
-    const signingMethod = getMethodToSignTransaction(txn, klaytn);
-    const { signature, signedTxn } = await signingMethod(txn as any);
-    console.log("Transaction after adding signature:");
-    logTxn(signedTxn);
-    await validateTransaction(signedTxn);
-}
-
-async function performSigningAndValidationForLongerTransaction(
-  apdus: string[],
+    apdus: string[],
   txn: AbstractTransaction
 ) {
     for (let apdu of apdus) {
