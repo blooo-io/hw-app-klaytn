@@ -43,7 +43,7 @@ const CLA_OFFSET = 0x00;
 
 const INS = {
   GET_VERSION: 0x01,
-  GET_ADDR: 0x02,
+  GET_PUBLIC_KEY: 0x02,
   SIGN_LEGACY: 0x04,
   SIGN_VALUE_TRANSFER: 0x08,
   SIGN_VALUE_TRANSFER_MEMO: 0x10,
@@ -143,7 +143,7 @@ export default class Klaytn {
     const pathBuffer = pathToBuffer(path + accountIndex);
 
     const addressBuffer = await this.sendToDevice(
-      INS.GET_ADDR,
+      INS.GET_PUBLIC_KEY,
       display ? P1_CONFIRM : P1_NON_CONFIRM,
       P2_NONE,
       pathBuffer
