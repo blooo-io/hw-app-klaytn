@@ -151,7 +151,7 @@ export default class Klaytn {
 
     const publicKeyLength = addressBuffer[0];
     const addressLength = addressBuffer[1 + publicKeyLength];
-
+    const chainCodeLength = addressBuffer[1 + publicKeyLength + 1 + addressLength];
     return {
       publicKey: addressBuffer.subarray(1, 1 + publicKeyLength).toString("hex"),
       address:
@@ -162,14 +162,12 @@ export default class Klaytn {
             1 + publicKeyLength + 1 + addressLength
           )
           .toString("ascii"),
-      chainCode: accountIndex
-        ? addressBuffer
+      chainCode: addressBuffer
             .subarray(
-              1 + publicKeyLength + 1 + addressLength,
+              1 + publicKeyLength + 1 + addressLength + 1,
               1 + publicKeyLength + 1 + addressLength + 32
             )
-            .toString("hex")
-        : undefined,
+            .toString("hex"),
     };
   }
 
