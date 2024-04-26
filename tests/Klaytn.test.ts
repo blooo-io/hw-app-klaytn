@@ -243,6 +243,25 @@ test("signLegacyTransaction with display", async () => {
   );
 });
 
+test("signCancel with display", async () => {
+  const txnToSign: Cancel = caver.transaction.cancel.create({
+    from: test_sender_address,
+    gasPrice: 50000000000,
+    gas: 300000,
+    nonce: 25,
+    chainId: CHAIN_ID,
+  });
+  await performSigningAndValidation(
+    [
+      "e006008015058000002c80002019800000000000000000000000",
+      "9000",
+      "e006010029e8a2e13819850ba43b7400830493e0946e93a3acfbadf457f29fb0e57fa42274004c32ea8203e98080",
+      "f54990b218171748d7560584301dba0bd65881833ba470c359445a912b4cd2e5921651030334981fba1c1dfeaae639d9e82a6e95359cde1c8ca48319d87f0e67b99000",
+    ],
+    txnToSign
+  );
+});
+
 /*
 test("signValueTransfer with display", async () => {
   const txnToSign: ValueTransfer = caver.transaction.valueTransfer.create({
@@ -319,21 +338,6 @@ test("signSmartContractExecution with display", async () => {
   await performSigningAndValidation(
     "e03000005d058000002c80002019800000000000000000000000f846b83ff83d3019850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01946e93a3acfbadf457f29fb0e57fa42274004c32ea8568656c6c6f8203e98080",
     "f5bef23a3e3ec09d771d915d570ed970736984d9fc8b6c6c1d115044d4f9e5505c102ddd5d7bebf6f412b8e1d6b369e250c5435f88e4cb5c1c6588cc64bb9d62be9000",
-    txnToSign
-  );
-});
-
-test("signCancel with display", async () => {
-  const txnToSign: Cancel = caver.transaction.cancel.create({
-    from: test_sender_address,
-    gasPrice: 50000000000,
-    gas: 300000,
-    nonce: 25,
-    chainId: CHAIN_ID,
-  });
-  await performSigningAndValidation(
-    "e03800003e058000002c80002019800000000000000000000000e8a2e13819850ba43b7400830493e0946e93a3acfbadf457f29fb0e57fa42274004c32ea8203e98080",
-    "f54990b218171748d7560584301dba0bd65881833ba470c359445a912b4cd2e5921651030334981fba1c1dfeaae639d9e82a6e95359cde1c8ca48319d87f0e67b99000",
     txnToSign
   );
 });
