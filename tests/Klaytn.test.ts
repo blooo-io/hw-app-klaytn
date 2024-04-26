@@ -91,51 +91,10 @@ async function performSigningAndValidation(
     );
     await txn.fillTransaction();
     const klaytn = new Klaytn(transport);
-    const signingMethod = getMethodToSignTransaction(txn, klaytn);
-    const { signature, signedTxn } = await signingMethod(txn as any);
+    const { signature, signedTxn } = await klaytn.signTransaction(txn as any);
     console.log("Transaction after adding signature:");
     logTxn(signedTxn);
     await validateTransaction(signedTxn);
-}
-
-function getMethodToSignTransaction(txn: AbstractTransaction, klaytn: Klaytn) {
-  console.log("TRANSACTION TYPE:", txn.type);
-  switch (txn.type) {
-    case "TxTypeLegacyTransaction":
-      return klaytn.signLegacyTransaction;
-    case "TxTypeValueTransfer":
-      return klaytn.signValueTransfer;
-    case "TxTypeValueTransferMemo":
-      return klaytn.signValueTransferMemo;
-    case "TxTypeSmartContractDeploy":
-      return klaytn.signSmartContractDeploy;
-    case "TxTypeSmartContractExecution":
-      return klaytn.signSmartContractExecution;
-    case "TxTypeCancel":
-      return klaytn.signCancel;
-    case "TxTypeFeeDelegatedCancel":
-      return klaytn.signFeeDelegatedCancel;
-    case "TxTypeFeeDelegatedCancelWithRatio":
-      return klaytn.signFeeDelegatedCancelWithRatio;
-    case "TxTypeFeeDelegatedSmartContractDeploy":
-      return klaytn.signFeeDelegatedSmartContractDeploy;
-    case "TxTypeFeeDelegatedSmartContractDeployWithRatio":
-      return klaytn.signFeeDelegatedSmartContractDeployWithRatio;
-    case "TxTypeFeeDelegatedSmartContractExecution":
-      return klaytn.signFeeDelegatedSmartContractExecution;
-    case "TxTypeFeeDelegatedSmartContractExecutionWithRatio":
-      return klaytn.signFeeDelegatedSmartContractExecutionWithRatio;
-    case "TxTypeFeeDelegatedValueTransfer":
-      return klaytn.signFeeDelegatedValueTransfer;
-    case "TxTypeFeeDelegatedValueTransferMemo":
-      return klaytn.signFeeDelegatedValueTransferMemo;
-    case "TxTypeFeeDelegatedValueTransferMemoWithRatio":
-      return klaytn.signFeeDelegatedValueTransferMemoWithRatio;
-    case "TxTypeFeeDelegatedValueTransferWithRatio":
-      return klaytn.signFeeDelegatedValueTransferWithRatio;
-    default:
-      throw new Error("Unsupported transaction type");
-  }
 }
 
 function logTxn(txn: AbstractTransaction, properties = properties_to_display) {
