@@ -203,8 +203,8 @@ const getRecoveredAddressFromSignedTxn = (signedTxn: AbstractTransaction) => {
 test("getVersion", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
-            => e001000000
-            <= 000100009000
+            => e003000000
+            <= 0100009000
         `)
   );
   const klaytn = new Klaytn(transport);
