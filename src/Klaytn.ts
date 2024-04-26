@@ -108,14 +108,13 @@ export default class Klaytn {
    * klaytn.getVersion().then(r => r.version)
    */
   async getVersion(): Promise<{ version: string }> {
-    const [allow_blind_sign, major, minor, patch] = await this.sendToDevice(
+    const [major, minor, patch] = await this.sendToDevice(
       INS.GET_VERSION,
       P1_NON_CONFIRM,
       P2_NONE,
       Buffer.from([])
     );
     console.log("version:", major, minor, patch);
-    console.log("allow_blind_sign:", allow_blind_sign ? "true" : "false");
     return {
       version: `${major}.${minor}.${patch}`,
     };
