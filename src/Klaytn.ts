@@ -27,29 +27,27 @@ import Caver, {
 } from "caver-js";
 import BigNumber from "bignumber.js";
 
-const P1_NON_CONFIRM = 0x00;
-const P1_CONFIRM = 0x01;
-
-const P1_BASIC = 0x00;
-const P1_FEE_DELEGATED = 0x01;
-const P1_FEE_DELEGATED_WITH_RATIO = 0x02;
-
-const P2_NONE = 0x00;
-const P2_EXTEND = 0x01;
-const P2_MORE = 0x02;
-
 const LEDGER_CLA = 0xe0;
 const CLA_OFFSET = 0x00;
 
+// FOR GET VERSION AND APP NAME
+const NONE = 0x00;
+
+// FOR GET PUBLIC KEY
+const P1_NON_CONFIRM = 0x00;
+const P1_CONFIRM = 0x01;
+const P2_NONE = 0x00;
+
+// FOR SIGN TRANSACTION
+const P1_FIRST_CHUNK = 0x00;
+const P2_MORE = 0x80;
+const P2_LAST = 0x00;
+
 const INS = {
-  GET_VERSION: 0x01,
-  GET_PUBLIC_KEY: 0x02,
-  SIGN_LEGACY: 0x04,
-  SIGN_VALUE_TRANSFER: 0x08,
-  SIGN_VALUE_TRANSFER_MEMO: 0x10,
-  SIGN_SMART_CONTRACT_DEPLOY: 0x28,
-  SIGN_SMART_CONTRACT_EXECUTION: 0x30,
-  SIGN_CANCEL: 0x38,
+  GET_VERSION: 0x03,
+  GET_APP_NAME: 0x04,
+  GET_PUBLIC_KEY: 0x05,
+  SIGN_TX: 0x06,
 };
 
 const klay_path = "44'/8217'/0'/0/";
