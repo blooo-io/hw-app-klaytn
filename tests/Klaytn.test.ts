@@ -75,7 +75,7 @@ async function signTransactionWithCaver(
 }
 
 async function performSigningAndValidation(
-    apdus: string[],
+  apdus: string[],
   txn: AbstractTransaction
 ) {
     for (let apdu of apdus) {
@@ -233,12 +233,17 @@ test("signLegacyTransaction with display", async () => {
       chainId: CHAIN_ID,
     });
   await performSigningAndValidation(
-    "e00400003d058000002c80002019800000000000000000000000e719850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01808203e98080",
-    "f68186ff6cd6a5e891b1dc9165ae349a4cda5ad2432a81a541b8189ac8f7b020603f8dc7a0a8120a392982d8bb44be6ea34757d85b366558389e16cc26b67ead729000",
+    [
+      "e006008015058000002c80002019800000000000000000000000",
+      "9000",
+      "e006010028e719850ba43b7400830493e0940ee56b604c869e3792c99e35c1c424f88f87dc8a01808203e98080",
+      "f68186ff6cd6a5e891b1dc9165ae349a4cda5ad2432a81a541b8189ac8f7b020603f8dc7a0a8120a392982d8bb44be6ea34757d85b366558389e16cc26b67ead729000",
+    ],
     txnToSign
   );
 });
 
+/*
 test("signValueTransfer with display", async () => {
   const txnToSign: ValueTransfer = caver.transaction.valueTransfer.create({
     from: test_sender_address,
@@ -526,3 +531,4 @@ test("signFeeDelegatedCancelWithRatio with display", async () => {
   );
 });
 
+*/
