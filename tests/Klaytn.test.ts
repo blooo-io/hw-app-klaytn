@@ -69,6 +69,7 @@ async function performSigningAndValidation(
   apdus: string[],
   txn: AbstractTransaction
 ) {
+  console.log(`rlpEncodedForSignature rawTx: ${txn.type}: ${txn.getRLPEncodingForSignature()}`);
     for (let apdu of apdus) {
       let index = apdus.indexOf(apdu);
       if (index % 2 == 0) {
