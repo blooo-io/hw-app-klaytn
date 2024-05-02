@@ -44,16 +44,7 @@ const test_sender_publicKey =
 const test_sender_privateKey =
   "0xba988b41f30ab65c5b8df817aa27468292d089db601892b01bccf0028d0d95bb";
 const test_receiver_address = "0x0EE56B604c869E3792c99E35C1C424f88F87dC8a";
-const properties_to_display = [
-  // "_type",
-  // "_from",
-  // "_gas",
-  // "_gasPrice",
-  // "_nonce",
-  // "_chainId",
-  // "_value",
-  // "_to",
-];
+
 
 async function signTransactionWithCaver(
   txn: AbstractTransaction,
@@ -93,21 +84,9 @@ async function performSigningAndValidation(
     const klaytn = new Klaytn(transport);
     const { signature, signedTxn } = await klaytn.signTransaction(txn as any);
     console.log("Transaction after adding signature:");
-    logTxn(signedTxn);
     await validateTransaction(signedTxn);
 }
 
-function logTxn(txn: AbstractTransaction, properties = properties_to_display) {
-  console.log(
-    "--------------------Transaction " + txn.type + "-------------------"
-  );
-  for (const property of properties) {
-    console.log(property + ":", txn[property]);
-  }
-  const rlpEncodedForSignature = txn.getRLPEncodingForSignature();
-  console.log(txn.type, ":", rlpEncodedForSignature, `rlpEncodedForSignature`);
-  console.log("-------------------------------------------------");
-}
 
 const validateTransaction = async (
   signedTxn: AbstractTransaction,
