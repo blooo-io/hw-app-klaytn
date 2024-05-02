@@ -99,6 +99,15 @@ const validateTransaction = async (
     `(${signedTxn.type})signaturesGeneratedByLedger:`,
     signaturesGeneratedByLedger
   );
+  const signaturesGeneratedByCaver = await signTransactionWithCaver(signedTxn);
+  console.log(
+    `(${signedTxn.type})signaturesGeneratedByCaver:`,
+    signaturesGeneratedByCaver
+  );
+  let secondCheck = (recoveredAddress==expectedAddress);
+  if(!secondCheck){
+    expect(signaturesGeneratedByLedger).toEqual(signaturesGeneratedByCaver);
+  }
   expect(recoveredAddress).toEqual(expectedAddress);
 
 };
@@ -520,5 +529,3 @@ test("signFeeDelegatedCancelWithRatio with display", async () => {
     txnToSign
   );
 });
-
-*/
