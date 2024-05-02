@@ -8,7 +8,7 @@ import Caver, {
 } from "caver-js";
 import { encode, decode } from "@ethersproject/rlp";
 
-const MAX_CHUNK_SIZE = 150;
+const MAX_CHUNK_SIZE = 255;
 
 const caver = new Caver();
 
