@@ -71,28 +71,9 @@ klaytn.getAddress("44'/8217'/0'/0/", false, 0).then((r) => r.address);
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)<{address: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), publicKey: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String), chainCode: [string](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) | [undefined](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined)}>** an object with the address field
 
-### Transaction Signing Methods
+### Transaction Signing Method
 
-Sign a Klaytn transaction. Here is a list of all the signing methods supported:
-
-- `signLegacyTransaction`
-- `signValueTransfer`
-- `signValueTransferMemo`
-- `signSmartContractDeploy`
-- `signSmartContractExecution`
-- `signCancel`
-- `signFeeDelegatedValueTransfer`
-- `signFeeDelegatedValueTransferMemo`
-- `signFeeDelegatedSmartContractDeploy`
-- `signFeeDelegatedSmartContractExecution`
-- `signFeeDelegatedCancel`
-- `signFeeDelegatedValueTransferWithRatio`
-- `signFeeDelegatedValueTransferMemoWithRatio`
-- `signFeeDelegatedSmartContractDeployWithRatio`
-- `signFeeDelegatedSmartContractExecutionWithRatio`
-- `signFeeDelegatedCancelWithRatio`
-
-Each of them take exactly the same parameters.
+To sign a Klaytn transaction use the method: **signTransaction** .
 
 #### Parameters
 
