@@ -122,13 +122,13 @@ test("getVersion", async () => {
   const transport = await openTransportReplayer(
     RecordStore.fromString(`
             => e003000000
-            <= 0100009000
+            <= 0101009000
         `)
   );
   const klaytn = new Klaytn(transport);
   const result = await klaytn.getVersion();
   expect(result).toEqual({
-    version: "1.0.0",
+    version: "1.1.0",
   });
 });
 
