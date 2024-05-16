@@ -162,7 +162,7 @@ export default class Klaytn {
       chainCode: addressBuffer
             .subarray(
               1 + publicKeyLength + 1 + addressLength + 1,
-              1 + publicKeyLength + 1 + addressLength + 32
+              1 + publicKeyLength + 1 + addressLength + chainCodeLength
             )
             .toString("hex"),
     };
