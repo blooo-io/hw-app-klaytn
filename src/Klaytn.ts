@@ -36,7 +36,6 @@ const NONE = 0x00;
 // FOR GET PUBLIC KEY
 const P1_NON_CONFIRM = 0x00;
 const P1_CONFIRM = 0x01;
-const P2_NONE = 0x00;
 
 // FOR SIGN TRANSACTION
 const P1_FIRST_CHUNK = 0x00;
