@@ -30,10 +30,8 @@ function doesStringIncludeAnyValueInArray(
 function decodeTxInfo(rawTx: Buffer, txType: string) {
   const rlpData = rawTx;
   const rlpTx = decode(rlpData).map((hex) => Buffer.from(hex.slice(2), "hex"));
-  console.log("decoded tx:", rlpTx);
   let chainIdTruncated = 0;
   const rlpDecoded = decode(rlpData);
-  console.log("rlpDecoded:", rlpDecoded);
 
   let decodedChainId;
   const TRANSACTION_TYPES = [
@@ -45,19 +43,15 @@ function decodeTxInfo(rawTx: Buffer, txType: string) {
     "FeeDelegatedValueTransfer",
   ];
 
-  console.log(txType);
   if (doesStringIncludeAnyValueInArray(txType, TRANSACTION_TYPES)) {
     decodedChainId = rlpTx[1];
   } else {
-    console.log("Legacy txType");
     decodedChainId = rlpTx.length > 6 ? rlpTx[6] : Buffer.from("0x01", "hex");
   }
-  console.log("decodedChainId =", decodedChainId);
   const chainIdSrc = decodedChainId;
   let chainId = new BigNumber(0);
   if (chainIdSrc) {
     // Using BigNumber because chainID could be any uint256.
-    console.log("new BN = ", new BigNumber(chainIdSrc.toString("hex"), 16));
     chainId = new BigNumber(chainIdSrc.toString("hex"), 16);
     const chainIdTruncatedBuf = Buffer.alloc(4);
     if (chainIdSrc.length > 4) {
@@ -203,9 +197,7 @@ export const serializeLegacyTransaction = (
   chainId: BigNumber;
   chainIdTruncated: number;
 } => {
-  console.log("txn in lib =", txn);
   const rawTxHex = txn.getRLPEncodingForSignature();
-  console.log("rawTx getRLP =", rawTxHex);
   const rawTx = Buffer.from(rawTxHex.slice(2), "hex");
 
   const { vrsOffset, txType, chainId, chainIdTruncated } = decodeTxInfo(
@@ -228,19 +220,14 @@ export const serializeKlaytnTransaction = (
   chainIdTruncated: number;
 } => {
   // const commonRlpSig = txn.getCommonRLPEncodingForSignature();
-  // console.log("commonRlpSig =", commonRlpSig)
 
   const rlpSig = txn.getRLPEncodingForSignature();
-  console.log("--km-logs [serializatio] (serializeKlaytnTransaction): RLP for signature =", rlpSig)
 
   // const getRawTx = txn.getRawTransaction();
-  // console.log("getRawTx =", getRawTx)
 
   // const rlp = txn.getRLPEncoding()
-  // console.log("rlp =", rlp)
 
   //   const decoded = caver.transaction.valueTransfer.decode(commonRlpSig)
-  //   console.log("decoded = ", decoded)
 
   // const rlpEncoded = rlpEncodeForValueTransfer(txn)
   const rawTx = Buffer.from(rlpSig.slice(2), "hex");

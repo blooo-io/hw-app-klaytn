@@ -69,7 +69,6 @@ async function performSigningAndValidation(
   apdus: string[],
   txn: AbstractTransaction
 ) {
-  console.log(`rlpEncodedForSignature rawTx: ${txn.type}: ${txn.getRLPEncodingForSignature()}`);
     for (let apdu of apdus) {
       let index = apdus.indexOf(apdu);
       if (index % 2 == 0) {
@@ -84,7 +83,6 @@ async function performSigningAndValidation(
     await txn.fillTransaction();
     const klaytn = new Klaytn(transport);
     const { signature, signedTxn } = await klaytn.signTransaction(txn as any);
-    console.log("Transaction after adding signature:");
     await validateTransaction(signedTxn);
 }
 
@@ -95,15 +93,7 @@ const validateTransaction = async (
 ) => {
   const recoveredAddress = getRecoveredAddressFromSignedTxn(signedTxn);
   const signaturesGeneratedByLedger = signedTxn.signatures;
-  console.log(
-    `(${signedTxn.type})signaturesGeneratedByLedger:`,
-    signaturesGeneratedByLedger
-  );
   const signaturesGeneratedByCaver = await signTransactionWithCaver(signedTxn);
-  console.log(
-    `(${signedTxn.type})signaturesGeneratedByCaver:`,
-    signaturesGeneratedByCaver
-  );
   let secondCheck = (recoveredAddress==expectedAddress);
   if(!secondCheck){
     expect(signaturesGeneratedByLedger).toEqual(signaturesGeneratedByCaver);
@@ -135,7 +125,6 @@ test("getVersion", async () => {
         `)
   );
   const klaytn = new Klaytn(transport);
-  console.log("getVersion");
   const result = await klaytn.getVersion();
   expect(result).toEqual({
     version: "1.0.0",
@@ -150,7 +139,6 @@ test("getAddress without display", async () => {
     `)
   );
   const klaytn = new Klaytn(transport);
-  console.log("getAddress");
   const { address } = await klaytn.getAddress(DERIVATION, false);
   expect(address).toEqual(test_sender_address);
 });
@@ -163,9 +151,7 @@ test("getAddress with display", async () => {
         `)
   );
   const klaytn = new Klaytn(transport);
-  console.log("getAddress");
   const { address } = await klaytn.getAddress(DERIVATION, true);
-  console.log("ADDRESS = ", address);
   expect(address).toEqual(test_sender_address);
 });
 
@@ -266,7 +252,6 @@ test("signSmartContractDeploy with display", async () => {
       input: "0x6080604052600560005534801561001557600080fd5b5060405161029c38038061029c8339818101604052810190610037919061007f565b80600081905550506100ac565b600080fd5b6000819050919050565b61005c81610049565b811461006757600080fd5b50565b60008151905061007981610053565b92915050565b60006020828403121561009557610094610044565b5b60006100a38482850161006a565b91505092915050565b6101e1806100bb6000396000f3fe608060405234801561001057600080fd5b50600436106100415760003560e01c80630dbe671f14610046578063d732d95514610064578063e8927fbc1461006e575b600080fd5b61004e610078565b60405161005b91906100d7565b60405180910390f35b61006c61007e565b005b6100766100a3565b005b60005481565b60008054146100a15760016000808282546100999190610121565b925050819055505b565b60016000808282546100b59190610155565b92505081905550565b6000819050919050565b6100d1816100be565b82525050565b60006020820190506100ec60008301846100c8565b92915050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600061012c826100be565b9150610137836100be565b92508282101561014a576101496100f2565b5b828203905092915050565b6000610160826100be565b915061016b836100be565b9250827fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff038211156101a05761019f6100f2565b5b82820190509291505056fea264697066735822122011473ea0fe0dcd65952f4315de5458369b91cb3a2f53790f0906775227a6070c64736f6c634300080f00330000000000000000000000000000000000000000000000000000000000000001",
     });
   // const caverSig = await signTransactionWithCaver(txnToSign);
-  // console.log("CAVER SIGNATURES:", caverSig);
   await performSigningAndValidation(
     [
       "e006008015058000002c80002019800000000000000000000000",

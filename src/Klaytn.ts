@@ -111,7 +111,6 @@ export default class Klaytn {
       NONE,
       Buffer.from([])
     );
-    console.log("version:", major, minor, patch);
     return {
       version: `${major}.${minor}.${patch}`,
     };
@@ -179,7 +178,6 @@ export default class Klaytn {
    */
   async signTransaction(txn:Transaction, accountIndex=0): Promise<{ signature: string[]; signedTxn: Transaction }> {
     const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
 
     let response;
 
@@ -215,8 +213,6 @@ export default class Klaytn {
     chainIdTruncated: number,
     txType: string | null
   ): string[] {
-    console.log("signature buffer =", response);
-    console.log("signature string = 0x", response.toString("hex"));
 
     const { v, r, s } = serializeSignature(
       response,
@@ -225,10 +221,8 @@ export default class Klaytn {
       txType
     );
 
-    console.log("v =", v, "\nr =", r, "\ns =", s);
 
     let signature = ["0x" + v, "0x" + r, "0x" + s];
-    console.log("signature =", signature);
     return signature;
   }
 
