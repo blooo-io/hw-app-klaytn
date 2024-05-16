@@ -6,6 +6,7 @@ import Klaytn from "../src/Klaytn";
 import { listen } from "@ledgerhq/logs";
 import Caver, {
   AbstractTransaction,
+  Transaction,
   Cancel,
   FeeDelegatedCancel,
   FeeDelegatedCancelWithRatio,
@@ -82,7 +83,7 @@ async function performSigningAndValidation(
     );
     await txn.fillTransaction();
     const klaytn = new Klaytn(transport);
-    const { signature, signedTxn } = await klaytn.signTransaction(txn as any);
+    const { signature, signedTxn } = await klaytn.signTransaction(txn as Transaction);
     await validateTransaction(signedTxn);
 }
 
