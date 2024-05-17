@@ -8,48 +8,29 @@ import {
 } from "./serialization";
 import Caver, {
   Transaction,
-  LegacyTransaction,
-  ValueTransfer,
-  ValueTransferMemo,
-  SmartContractDeploy,
-  SmartContractExecution,
-  Cancel,
-  FeeDelegatedValueTransfer,
-  FeeDelegatedValueTransferMemo,
-  FeeDelegatedSmartContractDeploy,
-  FeeDelegatedSmartContractExecution,
-  FeeDelegatedCancel,
-  FeeDelegatedValueTransferWithRatio,
-  FeeDelegatedValueTransferMemoWithRatio,
-  FeeDelegatedSmartContractDeployWithRatio,
-  FeeDelegatedSmartContractExecutionWithRatio,
-  FeeDelegatedCancelWithRatio,
 } from "caver-js";
 import BigNumber from "bignumber.js";
-
-const P1_NON_CONFIRM = 0x00;
-const P1_CONFIRM = 0x01;
-
-const P1_BASIC = 0x00;
-const P1_FEE_DELEGATED = 0x01;
-const P1_FEE_DELEGATED_WITH_RATIO = 0x02;
-
-const P2_NONE = 0x00;
-const P2_EXTEND = 0x01;
-const P2_MORE = 0x02;
 
 const LEDGER_CLA = 0xe0;
 const CLA_OFFSET = 0x00;
 
+// FOR GET VERSION AND APP NAME
+const NONE = 0x00;
+
+// FOR GET PUBLIC KEY
+const P1_NON_CONFIRM = 0x00;
+const P1_CONFIRM = 0x01;
+
+// FOR SIGN TRANSACTION
+const P1_FIRST_CHUNK = 0x00;
+const P2_MORE = 0x80;
+const P2_LAST = 0x00;
+
 const INS = {
-  GET_VERSION: 0x01,
-  GET_ADDR: 0x02,
-  SIGN_LEGACY: 0x04,
-  SIGN_VALUE_TRANSFER: 0x08,
-  SIGN_VALUE_TRANSFER_MEMO: 0x10,
-  SIGN_SMART_CONTRACT_DEPLOY: 0x28,
-  SIGN_SMART_CONTRACT_EXECUTION: 0x30,
-  SIGN_CANCEL: 0x38,
+  GET_VERSION: 0x03,
+  GET_APP_NAME: 0x04,
+  GET_PUBLIC_KEY: 0x05,
+  SIGN_TX: 0x06,
 };
 
 const klay_path = "44'/8217'/0'/0/";
@@ -78,22 +59,7 @@ export default class Klaytn {
       [
         "getVersion",
         "getAddress",
-        "signLegacyTransaction",
-        "signValueTransfer",
-        "signValueTransferMemo",
-        "signSmartContractDeploy",
-        "signSmartContractExecution",
-        "signCancel",
-        "signFeeDelegatedValueTransfer",
-        "signFeeDelegatedValueTransferMemo",
-        "signFeeDelegatedSmartContractDeploy",
-        "signFeeDelegatedSmartContractExecution",
-        "signFeeDelegatedCancel",
-        "signFeeDelegatedValueTransferWithRatio",
-        "signFeeDelegatedValueTransferMemoWithRatio",
-        "signFeeDelegatedSmartContractDeployWithRatio",
-        "signFeeDelegatedSmartContractExecutionWithRatio",
-        "signFeeDelegatedCancelWithRatio",
+        "signTransaction",
       ],
       scrambleKey
     );
@@ -108,14 +74,12 @@ export default class Klaytn {
    * klaytn.getVersion().then(r => r.version)
    */
   async getVersion(): Promise<{ version: string }> {
-    const [allow_blind_sign, major, minor, patch] = await this.sendToDevice(
+    const [major, minor, patch] = await this.sendToDevice(
       INS.GET_VERSION,
-      P1_NON_CONFIRM,
-      P2_NONE,
+      NONE,
+      NONE,
       Buffer.from([])
     );
-    console.log("version:", major, minor, patch);
-    console.log("allow_blind_sign:", allow_blind_sign ? "true" : "false");
     return {
       version: `${major}.${minor}.${patch}`,
     };
@@ -144,15 +108,15 @@ export default class Klaytn {
     const pathBuffer = pathToBuffer(path + accountIndex);
 
     const addressBuffer = await this.sendToDevice(
-      INS.GET_ADDR,
+      INS.GET_PUBLIC_KEY,
       display ? P1_CONFIRM : P1_NON_CONFIRM,
-      P2_NONE,
+      NONE,
       pathBuffer
     );
 
     const publicKeyLength = addressBuffer[0];
     const addressLength = addressBuffer[1 + publicKeyLength];
-
+    const chainCodeLength = addressBuffer[1 + publicKeyLength + 1 + addressLength];
     return {
       publicKey: addressBuffer.subarray(1, 1 + publicKeyLength).toString("hex"),
       address:
@@ -163,50 +127,35 @@ export default class Klaytn {
             1 + publicKeyLength + 1 + addressLength
           )
           .toString("ascii"),
-      chainCode: accountIndex
-        ? addressBuffer
+      chainCode: addressBuffer
             .subarray(
-              1 + publicKeyLength + 1 + addressLength,
-              1 + publicKeyLength + 1 + addressLength + 32
+              1 + publicKeyLength + 1 + addressLength + 1,
+              1 + publicKeyLength + 1 + addressLength + chainCodeLength
             )
-            .toString("hex")
-        : undefined,
+            .toString("hex"),
     };
   }
 
   /**
-   * Sign a Klaytn `PaymentV2` transaction.
-   *
-   * @param txn a PaymentV2 transaction
-   * @param accountIndex index of account address
-   *
-   * @returns an object with the signed transaction and signature
-   *
+   * Signs a Klaytn transaction using the specified account index.
+   * @param txn - The transaction to sign.
+   * @param accountIndex - The index of the account to use for signing. Default is 0.
+   * @returns An object containing the signature and the signed transaction.
+   * @throws Error if the user declines the transaction.
    * @example
-   * import { PaymentV2 } from '@klaytn/transactions'
-   * const txn = new PaymentV2({ ... })
    * klaytn.signTransaction(txn).then(r => r.signature)
    */
-  async signLegacyTransaction(
-    txn: LegacyTransaction,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: LegacyTransaction }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeLegacyTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
+  async signTransaction(txn:Transaction, accountIndex=0): Promise<{ signature: string[]; signedTxn: Transaction }> {
+    const { payloads, txType, chainId, chainIdTruncated } = serializeKlaytnTransaction(txn, klay_path + accountIndex);
 
-    let response = await this.sendToDevice(
-      INS.SIGN_LEGACY,
-      P1_BASIC,
-      P2_NONE,
-      payloads[0]
-    );
+    let response;
 
-    for (let i = 1; i < payloads.length; i++) {
+    for (let i = 0; i < payloads.length; i++) {
+      const lastChunk = i === payloads.length - 1;
       response = await this.sendToDevice(
-        INS.SIGN_LEGACY,
-        P1_BASIC,
-        P2_EXTEND,
+        INS.SIGN_TX,
+        P1_FIRST_CHUNK + i,
+        lastChunk ? P2_LAST : P2_MORE,
         payloads[i]
       );
     }
@@ -227,716 +176,12 @@ export default class Klaytn {
     };
   }
 
-  async signValueTransfer(
-    txn: ValueTransfer,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: ValueTransfer }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_VALUE_TRANSFER,
-      P1_BASIC,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_VALUE_TRANSFER,
-        P1_BASIC,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signValueTransferMemo(
-    txn: ValueTransferMemo,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: ValueTransferMemo }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads[", payloads.length, "] =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_VALUE_TRANSFER_MEMO,
-      P1_BASIC,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_VALUE_TRANSFER_MEMO,
-        P1_BASIC,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signSmartContractDeploy(
-    txn: SmartContractDeploy,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: SmartContractDeploy }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_SMART_CONTRACT_DEPLOY,
-      P1_BASIC,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_SMART_CONTRACT_DEPLOY,
-        P1_BASIC,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signSmartContractExecution(
-    txn: SmartContractExecution,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: SmartContractExecution }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-
-    let response = await this.sendToDevice(
-      INS.SIGN_SMART_CONTRACT_EXECUTION,
-      P1_BASIC,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_SMART_CONTRACT_EXECUTION,
-        P1_BASIC,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signCancel(
-    txn: Cancel,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: Cancel }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    let response = await this.sendToDevice(
-      INS.SIGN_CANCEL,
-      P1_BASIC,
-      P2_NONE,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      response = await this.sendToDevice(
-        INS.SIGN_CANCEL,
-        P1_BASIC,
-        P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedValueTransfer(
-    txn: FeeDelegatedValueTransfer,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: FeeDelegatedValueTransfer }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_VALUE_TRANSFER,
-      P1_FEE_DELEGATED,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_VALUE_TRANSFER,
-        P1_FEE_DELEGATED,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedValueTransferMemo(
-    txn: FeeDelegatedValueTransferMemo,
-    accountIndex = 0
-  ): Promise<{
-    signature: string[];
-    signedTxn: FeeDelegatedValueTransferMemo;
-  }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_VALUE_TRANSFER_MEMO,
-      P1_FEE_DELEGATED,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_VALUE_TRANSFER_MEMO,
-        P1_FEE_DELEGATED,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedSmartContractDeploy(
-    txn: FeeDelegatedSmartContractDeploy,
-    accountIndex = 0
-  ): Promise<{
-    signature: string[];
-    signedTxn: FeeDelegatedSmartContractDeploy;
-  }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_SMART_CONTRACT_DEPLOY,
-      P1_FEE_DELEGATED,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_SMART_CONTRACT_DEPLOY,
-        P1_FEE_DELEGATED,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedSmartContractExecution(
-    txn: FeeDelegatedSmartContractExecution,
-    accountIndex = 0
-  ): Promise<{
-    signature: string[];
-    signedTxn: FeeDelegatedSmartContractExecution;
-  }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_SMART_CONTRACT_EXECUTION,
-      P1_FEE_DELEGATED,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_SMART_CONTRACT_EXECUTION,
-        P1_FEE_DELEGATED,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedCancel(
-    txn: FeeDelegatedCancel,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: FeeDelegatedCancel }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_CANCEL,
-      P1_FEE_DELEGATED,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_CANCEL,
-        P1_FEE_DELEGATED,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedValueTransferWithRatio(
-    txn: FeeDelegatedValueTransferWithRatio,
-    accountIndex = 0
-  ): Promise<{
-    signature: string[];
-    signedTxn: FeeDelegatedValueTransferWithRatio;
-  }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_VALUE_TRANSFER,
-      P1_FEE_DELEGATED_WITH_RATIO,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_VALUE_TRANSFER,
-        P1_FEE_DELEGATED_WITH_RATIO,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedValueTransferMemoWithRatio(
-    txn: FeeDelegatedValueTransferMemoWithRatio,
-    accountIndex = 0
-  ): Promise<{
-    signature: string[];
-    signedTxn: FeeDelegatedValueTransferMemoWithRatio;
-  }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_VALUE_TRANSFER_MEMO,
-      P1_FEE_DELEGATED_WITH_RATIO,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_VALUE_TRANSFER_MEMO,
-        P1_FEE_DELEGATED_WITH_RATIO,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedSmartContractDeployWithRatio(
-    txn: FeeDelegatedSmartContractDeployWithRatio,
-    accountIndex = 0
-  ): Promise<{
-    signature: string[];
-    signedTxn: FeeDelegatedSmartContractDeployWithRatio;
-  }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_SMART_CONTRACT_DEPLOY,
-      P1_FEE_DELEGATED_WITH_RATIO,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_SMART_CONTRACT_DEPLOY,
-        P1_FEE_DELEGATED_WITH_RATIO,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedSmartContractExecutionWithRatio(
-    txn: FeeDelegatedSmartContractExecutionWithRatio,
-    accountIndex = 0
-  ): Promise<{
-    signature: string[];
-    signedTxn: FeeDelegatedSmartContractExecutionWithRatio;
-  }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_SMART_CONTRACT_EXECUTION,
-      P1_FEE_DELEGATED_WITH_RATIO,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_SMART_CONTRACT_EXECUTION,
-        P1_FEE_DELEGATED_WITH_RATIO,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
-
-  async signFeeDelegatedCancelWithRatio(
-    txn: FeeDelegatedCancelWithRatio,
-    accountIndex = 0
-  ): Promise<{ signature: string[]; signedTxn: FeeDelegatedCancelWithRatio }> {
-    const { payloads, txType, chainId, chainIdTruncated } =
-      serializeKlaytnTransaction(txn, klay_path + accountIndex);
-    console.log("payloads =", payloads);
-
-    const firstP2 = payloads.length === 1 ? P2_NONE : P2_MORE;
-    const finalP2 = payloads.length > 1 ? P2_EXTEND : P2_NONE;
-    // If only 1 chunk, send with P2_NONE
-    // Else, send all chunks with P2_MORE except for the last chunk
-    // Send all chunks with P2_EXTEND except for the first chunk
-    let response = await this.sendToDevice(
-      INS.SIGN_CANCEL,
-      P1_FEE_DELEGATED_WITH_RATIO,
-      firstP2,
-      payloads[0]
-    );
-
-    for (let i = 1; i < payloads.length; i++) {
-      const P2Type = i === payloads.length - 1 ? finalP2 : P2_MORE;
-      response = await this.sendToDevice(
-        INS.SIGN_CANCEL,
-        P1_FEE_DELEGATED_WITH_RATIO,
-        P2Type | P2_EXTEND,
-        payloads[i]
-      );
-    }
-
-    if (response.length === 1) throw new Error("User has declined.");
-
-    const signature = this.serializeAndFormatSignature(
-      response,
-      chainId,
-      chainIdTruncated,
-      txType
-    );
-    txn.appendSignatures(signature);
-
-    return {
-      signature: signature,
-      signedTxn: txn,
-    };
-  }
   private serializeAndFormatSignature(
     response: Buffer,
     chainId: BigNumber,
     chainIdTruncated: number,
     txType: string | null
   ): string[] {
-    console.log("signature buffer =", response);
-    console.log("signature string = 0x", response.toString("hex"));
 
     const { v, r, s } = serializeSignature(
       response,
@@ -945,10 +190,8 @@ export default class Klaytn {
       txType
     );
 
-    console.log("v =", v, "\nr =", r, "\ns =", s);
 
     let signature = ["0x" + v, "0x" + r, "0x" + s];
-    console.log("signature =", signature);
     return signature;
   }
 
