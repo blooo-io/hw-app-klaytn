@@ -8,22 +8,6 @@ import {
 } from "./serialization";
 import Caver, {
   Transaction,
-  LegacyTransaction,
-  ValueTransfer,
-  ValueTransferMemo,
-  SmartContractDeploy,
-  SmartContractExecution,
-  Cancel,
-  FeeDelegatedValueTransfer,
-  FeeDelegatedValueTransferMemo,
-  FeeDelegatedSmartContractDeploy,
-  FeeDelegatedSmartContractExecution,
-  FeeDelegatedCancel,
-  FeeDelegatedValueTransferWithRatio,
-  FeeDelegatedValueTransferMemoWithRatio,
-  FeeDelegatedSmartContractDeployWithRatio,
-  FeeDelegatedSmartContractExecutionWithRatio,
-  FeeDelegatedCancelWithRatio,
 } from "caver-js";
 import BigNumber from "bignumber.js";
 
@@ -75,22 +59,7 @@ export default class Klaytn {
       [
         "getVersion",
         "getAddress",
-        "signLegacyTransaction",
-        "signValueTransfer",
-        "signValueTransferMemo",
-        "signSmartContractDeploy",
-        "signSmartContractExecution",
-        "signCancel",
-        "signFeeDelegatedValueTransfer",
-        "signFeeDelegatedValueTransferMemo",
-        "signFeeDelegatedSmartContractDeploy",
-        "signFeeDelegatedSmartContractExecution",
-        "signFeeDelegatedCancel",
-        "signFeeDelegatedValueTransferWithRatio",
-        "signFeeDelegatedValueTransferMemoWithRatio",
-        "signFeeDelegatedSmartContractDeployWithRatio",
-        "signFeeDelegatedSmartContractExecutionWithRatio",
-        "signFeeDelegatedCancelWithRatio",
+        "signTransaction",
       ],
       scrambleKey
     );
