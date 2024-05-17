@@ -128,11 +128,6 @@ export const splitPath = (path: string): number[] => {
 
 export const pathToBuffer = (originalPath: string): Buffer => {
   const path = originalPath;
-  // .split("/")
-  // .map((value) =>
-  //   value.endsWith("'") || value.endsWith("h") ? value : value + "'"
-  // )
-  // .join("/");
   const pathNums: number[] = BIPPath.fromString(path).toPathArray();
   return serializePath(pathNums);
 };
@@ -219,24 +214,15 @@ export const serializeKlaytnTransaction = (
   chainId: BigNumber;
   chainIdTruncated: number;
 } => {
-  // const commonRlpSig = txn.getCommonRLPEncodingForSignature();
 
   const rlpSig = txn.getRLPEncodingForSignature();
 
-  // const getRawTx = txn.getRawTransaction();
-
-  // const rlp = txn.getRLPEncoding()
-
-  //   const decoded = caver.transaction.valueTransfer.decode(commonRlpSig)
-
-  // const rlpEncoded = rlpEncodeForValueTransfer(txn)
   const rawTx = Buffer.from(rlpSig.slice(2), "hex");
 
   const { vrsOffset, txType, chainId, chainIdTruncated } = decodeTxInfo(
     rawTx,
     txn.type
   );
-  // const getRawTxBuffer = Buffer.from(getRawTx.slice(2), "hex")
   const payloads = serializeTransactionPayloads(path, rawTx, vrsOffset);
 
   return { payloads, txType, chainId, chainIdTruncated };
